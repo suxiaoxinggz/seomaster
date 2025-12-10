@@ -12,7 +12,7 @@ import { AppContext } from './context/AppContext';
 import ImageTextProcessor from './components/ImageTextProcessor';
 import PublishingManager from './components/PublishingManager';
 import Spinner from './components/ui/Spinner';
-// LandingPage import removed
+import LandingPage from './components/LandingPage';
 import Card from './components/ui/Card';
 import Input from './components/ui/Input';
 import Button from './components/ui/Button';

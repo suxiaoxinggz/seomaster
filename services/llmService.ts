@@ -58,7 +58,7 @@ async function callOpenAiCompatibleApi(
     options: { jsonMode?: boolean, stream?: boolean, onStream?: (chunk: string) => void } = {}
 ): Promise<string> {
     const isDeepSeekReasoner = model.id.includes('reasoner') || model.id.includes('R1');
-    const isSaaSMode = !model.apiKey || model.apiKey.length < 5; // Heuristic: No key = SaaS Mode
+    const isSaaSMode = !model.api_key || model.api_key.length < 5; // Heuristic: No key = SaaS Mode
 
     if (isSaaSMode) {
         // --- 1. SaaS Proxy Mode ---
@@ -113,7 +113,7 @@ async function callProxyOpenAi(prompt: string, model: Model, options: any, isDee
 
 // Sub-function: Direct BYOK Logic
 async function callDirectOpenAi(prompt: string, model: Model, options: any, isDeepSeekReasoner: boolean) {
-    const baseUrl = model.baseURL?.replace(/\/+$/, '') || 'https://api.openai.com/v1';
+    const baseUrl = model.base_url?.replace(/\/+$/, '') || 'https://api.openai.com/v1';
     const endpoint = baseUrl.endsWith('/chat/completions') ? baseUrl : `${baseUrl}/chat/completions`;
 
     const body: any = {
@@ -135,7 +135,7 @@ async function callDirectOpenAi(prompt: string, model: Model, options: any, isDe
         const response = await fetch(endpoint, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${model.apiKey}`,
+                'Authorization': `Bearer ${model.api_key}`,
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify(body),
@@ -143,7 +143,7 @@ async function callDirectOpenAi(prompt: string, model: Model, options: any, isDe
 
         if (!response.ok) {
             const errorText = await response.text();
-            throw new Error(`Direct API Error (${model.apiProvider}): ${response.status} - ${errorText}`);
+            throw new Error(`Direct API Error (${model.api_provider}): ${response.status} - ${errorText}`);
         }
 
         if (options.stream && options.onStream) {

@@ -80,7 +80,6 @@ const ArticleGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
     const presetModels = models.filter(m => m.type === ModelProvider.PRESET);
     const customModels = models.filter(m => m.type === ModelProvider.CUSTOM);
 
-    if (!context) return null;
 
     // Handle Incoming Navigation Payload
     useEffect(() => {
@@ -94,6 +93,9 @@ const ArticleGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
             toast.success("关键词上下文已加载", { id: 'ctx-loaded' });
         }
     }, [navigationPayload, setNavigationPayload]);
+
+    if (!context) return null;
+
 
     const handleGenerate = async () => {
         if (!currentSelectedModel) {

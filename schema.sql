@@ -150,7 +150,7 @@ create table if not exists seo_snapshots (
   query text not null,
   parameters jsonb default '{}'::jsonb,
   data jsonb default '{}'::jsonb,
-  "createdAt" timestamp with time zone default timezone('utc'::text, now()) not null,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   tags text[] default array[]::text[]
 );
 

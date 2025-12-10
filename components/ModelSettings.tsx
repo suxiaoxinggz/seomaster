@@ -387,7 +387,7 @@ const ModelSettings: React.FC = () => {
             </Card>
 
             {/* Filter Bar */}
-            <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
+            <div className="flex flex-wrap gap-2 mb-6 pb-2">
                 <button
                     onClick={() => setFilterProvider('all')}
                     className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${filterProvider === 'all' ? 'bg-white text-black border-white' : 'bg-gray-800 text-gray-400 border-gray-700 hover:border-gray-500'}`}
@@ -447,6 +447,7 @@ const ModelSettings: React.FC = () => {
                                 <option value={ApiProvider.MODELSCOPE}>ModelScope (MaaS)</option>
                                 <option value={ApiProvider.ANTHROPIC}>Anthropic (Claude)</option>
                                 <option value={ApiProvider.OPENAI}>OpenAI Official</option>
+                                <option value={ApiProvider.GEMINI}>Google Gemini</option>
                             </Select>
                         </div>
                     </div>
@@ -484,11 +485,24 @@ const ModelSettings: React.FC = () => {
 
                     <div className="col-span-2">
                         {fetchedModels.length > 0 ? (
-                            <Select label="Model ID" value={editingModel?.id || ''} onChange={(e) => setEditingModel({ ...editingModel, id: e.target.value })}>
-                                {fetchedModels.map(m => <option key={m.id} value={m.id}>{m.id}</option>)}
-                            </Select>
+                            <div className="space-y-1">
+                                <div className="flex justify-between items-center">
+                                    <label className="block text-xs font-medium text-gray-400">Model ID</label>
+                                    <button onClick={() => setFetchedModels([])} className="text-[10px] text-blue-400 hover:text-blue-300 underline">
+                                        Enter Manually
+                                    </button>
+                                </div>
+                                <Select value={editingModel?.id || ''} onChange={(e) => setEditingModel({ ...editingModel, id: e.target.value })}>
+                                    {fetchedModels.map(m => <option key={m.id} value={m.id}>{m.id}</option>)}
+                                </Select>
+                            </div>
                         ) : (
-                            <Input label="Model ID" placeholder="e.g. deepseek-chat, deepseek-reasoner" value={editingModel?.id || ''} onChange={(e) => setEditingModel({ ...editingModel, id: e.target.value })} />
+                            <Input
+                                label="Model ID"
+                                placeholder={editingModel?.apiProvider === ApiProvider.GEMINI ? 'e.g. gemini-1.5-flash, gemini-1.0-pro' : 'e.g. deepseek-chat, gpt-4-turbo'}
+                                value={editingModel?.id || ''}
+                                onChange={(e) => setEditingModel({ ...editingModel, id: e.target.value })}
+                            />
                         )}
                     </div>
 

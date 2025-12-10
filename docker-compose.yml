@@ -23,6 +23,9 @@ services:
     build:
       context: .
       dockerfile: frontend.Dockerfile
+      args:
+        - VITE_SUPABASE_URL=${SUPABASE_URL}
+        - VITE_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
     container_name: seo-frontend
     restart: always
     ports:

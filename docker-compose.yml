@@ -20,12 +20,11 @@ services:
 
   # 🌐 前端 Nginx + 反向代理
   frontend:
-    image: nginx:alpine
+    build:
+      context: .
+      dockerfile: frontend.Dockerfile
     container_name: seo-frontend
     restart: always
-    volumes:
-      - ./dist:/usr/share/nginx/html # ⚠️ Assumes 'npm run build' has been run to create 'dist'
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf
     ports:
       # 🛡️ 唯一暴露端口，仅限本地访问 (配合 1Panel 反代)
       - "127.0.0.1:3060:80"

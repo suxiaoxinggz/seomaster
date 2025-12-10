@@ -1,5 +1,5 @@
 # Build Stage
-FROM node:20-alpine as builder
+FROM node:20-alpine AS builder
 WORKDIR /app
 COPY package.json package-lock.json ./
 # Use strict peer deps false in case of conflicts, or legacy peer deps

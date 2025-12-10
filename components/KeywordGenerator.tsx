@@ -398,8 +398,8 @@ const KeywordGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
                 const newProject: Omit<Project, 'user_id'> = {
                     id: `proj-${Date.now()}`,
                     name: newParentProjectName.trim(),
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString(),
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
                 };
                 const { data, error } = await supabase.from('projects').insert({ ...newProject, user_id: session.user.id } as any).select().single();
                 if (error) throw error;
@@ -418,7 +418,7 @@ const KeywordGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
             let finalSubProjectName = subProjectName.trim();
             const baseName = finalSubProjectName.replace(/\s\(Version \d+\)$/, '').trim();
             const lineage = keywordLibrary.filter(sp =>
-                sp.parentProjectId === finalParentProjectId &&
+                sp.parent_project_id === finalParentProjectId &&
                 sp.name.replace(/\s\(Version \d+\)$/, '').trim() === baseName
             );
             if (lineage.some(sp => sp.name === finalSubProjectName)) {
@@ -471,9 +471,9 @@ const KeywordGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
             const newSubProject: Omit<KeywordSubProject, 'user_id'> = {
                 id: `subproj-${Date.now()}`,
                 name: finalSubProjectName,
-                parentProjectId: finalParentProjectId,
-                savedAt: new Date().toISOString(),
-                modelUsed: generationModel?.nickname || 'Unknown',
+                parent_project_id: finalParentProjectId,
+                saved_at: new Date().toISOString(),
+                model_used: generationModel?.nickname || 'Unknown',
                 keywords: savedHierarchy,
                 translations: savedTranslations,
             };
@@ -610,7 +610,7 @@ const KeywordGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
                                     {presetModels.map(m => <option key={m.id} value={m.id}>{m.nickname}</option>)}
                                 </optgroup>
                             </Select>
-                            <Toggle label="启用网络搜索" enabled={enableWebSearch} setEnabled={setEnableWebSearch} disabled={!currentSelectedModel?.supportsWebSearch} />
+                            <Toggle label="启用网络搜索" enabled={enableWebSearch} setEnabled={setEnableWebSearch} disabled={!currentSelectedModel?.supports_web_search} />
                             {modelWarning && <p className="text-xs text-yellow-400">{modelWarning}</p>}
                         </div>
                     </Card>

@@ -47,8 +47,8 @@ create table if not exists projects (
   id uuid default uuid_generate_v4() primary key,
   user_id uuid references auth.users not null,
   name text not null,
-  "createdAt" timestamp with time zone default timezone('utc'::text, now()) not null,
-  "updatedAt" timestamp with time zone default timezone('utc'::text, now()) not null
+  "created_at" timestamp with time zone default timezone('utc'::text, now()) not null,
+  "updated_at" timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
 -- 2. Keyword Library (Sub Projects)
@@ -56,12 +56,12 @@ create table if not exists keyword_library (
   id uuid default uuid_generate_v4() primary key,
   user_id uuid references auth.users not null,
   name text not null,
-  "parentProjectId" uuid references projects(id) on delete cascade not null,
-  "savedAt" timestamp with time zone default timezone('utc'::text, now()) not null,
-  "modelUsed" text not null,
+  "parent_project_id" uuid references projects(id) on delete cascade not null,
+  "saved_at" timestamp with time zone default timezone('utc'::text, now()) not null,
+  "model_used" text not null,
   keywords jsonb default '[]'::jsonb, 
   translations jsonb default '{}'::jsonb,
-  "publishedDestinations" jsonb default '[]'::jsonb
+  "published_destinations" jsonb default '[]'::jsonb
 );
 
 -- 3. Articles
@@ -70,12 +70,12 @@ create table if not exists articles (
   user_id uuid references auth.users not null,
   title text not null,
   content text default '',
-  "keywordContext" text,
-  "parentProjectId" uuid, 
-  "subProjectId" uuid, 
-  "createdAt" timestamp with time zone default timezone('utc'::text, now()) not null,
-  "modelUsed" text,
-  "publishedDestinations" jsonb default '[]'::jsonb
+  "keyword_context" text,
+  "parent_project_id" uuid, 
+  "sub_project_id" uuid, 
+  "created_at" timestamp with time zone default timezone('utc'::text, now()) not null,
+  "model_used" text,
+  "published_destinations" jsonb default '[]'::jsonb
 );
 
 -- 4. Models (Custom User Models)
@@ -83,13 +83,13 @@ create table if not exists models (
   id text primary key, 
   user_id uuid references auth.users not null,
   nickname text not null,
-  "apiKey" text not null,
-  "baseURL" text,
+  "api_key" text not null,
+  "base_url" text,
   version text,
-  "supportsWebSearch" boolean default false,
+  "supports_web_search" boolean default false,
   type text not null,
-  "apiProvider" text not null,
-  "isDefault" boolean default false
+  "api_provider" text not null,
+  "is_default" boolean default false
 );
 
 -- 5. Posts to Publish (Formatted Posts)
@@ -97,14 +97,14 @@ create table if not exists posts_to_publish (
   id uuid default uuid_generate_v4() primary key,
   user_id uuid references auth.users not null,
   title text not null,
-  "htmlContent" text,
-  "markdownContent" text,
-  "keywordContext" text,
-  "usedImages" jsonb default '[]'::jsonb,
-  "createdAt" timestamp with time zone default timezone('utc'::text, now()) not null,
-  "parentProjectId" uuid,
-  "subProjectId" uuid,
-  "publishedDestinations" jsonb default '[]'::jsonb
+  "html_content" text,
+  "markdown_content" text,
+  "keyword_context" text,
+  "used_images" jsonb default '[]'::jsonb,
+  "created_at" timestamp with time zone default timezone('utc'::text, now()) not null,
+  "parent_project_id" uuid,
+  "sub_project_id" uuid,
+  "published_destinations" jsonb default '[]'::jsonb
 );
 
 -- 6. Publishing Channels
@@ -114,15 +114,15 @@ create table if not exists publishing_channels (
   name text not null,
   platform text not null,
   config jsonb default '{}'::jsonb,
-  "isDefault" boolean default false
+  "is_default" boolean default false
 );
 
 -- 7. Publishing Queue
 create table if not exists publishing_queue (
   id uuid default uuid_generate_v4() primary key,
   user_id uuid references auth.users not null,
-  "sourceId" uuid not null,
-  "sourceType" text not null,
+  "source_id" uuid not null,
+  "source_type" text not null,
   name text not null,
   status text not null,
   log text,
@@ -134,12 +134,12 @@ create table if not exists saved_image_sets (
   id uuid default uuid_generate_v4() primary key,
   user_id uuid references auth.users not null,
   name text not null,
-  "searchTermOrPrompt" text,
+  "search_term_or_prompt" text,
   images jsonb default '[]'::jsonb,
-  "createdAt" timestamp with time zone default timezone('utc'::text, now()) not null,
-  "parentProjectId" uuid,
-  "subProjectId" uuid,
-  "publishedDestinations" jsonb default '[]'::jsonb
+  "created_at" timestamp with time zone default timezone('utc'::text, now()) not null,
+  "parent_project_id" uuid,
+  "sub_project_id" uuid,
+  "published_destinations" jsonb default '[]'::jsonb
 );
 
 -- 9. SEO Snapshots

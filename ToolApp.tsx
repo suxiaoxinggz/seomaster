@@ -283,7 +283,21 @@ const AppContent: React.FC = () => {
             setArticles(articlesRes.data || []);
 
             // --- Models Sync Logic ---
-            const modelsData = (modelsRes.data || []) as Model[];
+            // Shim: handle both new snake_case and legacy camelCase from DB
+            const modelsData = ((modelsRes.data || []) as any[]).map(m => ({
+                ...m,
+                id: m.id,
+                user_id: m.user_id,
+                nickname: m.nickname,
+                // Handle mixed conventions
+                api_provider: m.api_provider || m.apiProvider,
+                base_url: m.base_url || m.baseURL,
+                api_key: m.api_key || m.apiKey,
+                is_default: m.is_default !== undefined ? m.is_default : m.isDefault,
+                supports_web_search: m.supports_web_search !== undefined ? m.supports_web_search : m.supportsWebSearch,
+                type: m.type,
+                version: m.version
+            })) as Model[];
             const existingModelIds = new Set(modelsData.map(m => m.id));
 
             // Find presets that are not in the DB

@@ -26,8 +26,8 @@ const downloadTXT = (content: string, filename: string) => {
 
 // Toolbar Component
 const ToolbarButton: React.FC<{ label: string, onClick: () => void }> = ({ label, onClick }) => (
-    <button 
-        onClick={onClick} 
+    <button
+        onClick={onClick}
         className="px-2 py-1 bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 rounded text-xs font-semibold transition-colors border border-gray-700"
     >
         {label}
@@ -42,7 +42,7 @@ interface ContentProgressViewProps {
 
 const ContentProgressView: React.FC<ContentProgressViewProps> = ({ setPage, filterProjectId = null, onClearFilter }) => {
     const context = useContext(AppContext);
-    const { articles, setArticles, projects, keywordLibrary, setPublishingQueue, setNavigationPayload } = context || { articles: [], setArticles: () => {}, projects: [], keywordLibrary: [], setPublishingQueue: () => {}, setNavigationPayload: () => {} };
+    const { articles, setArticles, projects, keywordLibrary, setPublishingQueue, setNavigationPayload } = context || { articles: [], setArticles: () => { }, projects: [], keywordLibrary: [], setPublishingQueue: () => { }, setNavigationPayload: () => { } };
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
@@ -50,7 +50,7 @@ const ContentProgressView: React.FC<ContentProgressViewProps> = ({ setPage, filt
     const [selectedArticles, setSelectedArticles] = useState<Set<string>>(new Set());
     const [showPreview, setShowPreview] = useState(false);
     const [searchTerm, setSearchTerm] = useState(''); // New search state
-    
+
     // Ref for the textarea to manipulate cursor/selection
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -58,7 +58,7 @@ const ContentProgressView: React.FC<ContentProgressViewProps> = ({ setPage, filt
     const displayArticles = useMemo(() => {
         let filtered = articles;
         if (filterProjectId) {
-            filtered = filtered.filter(a => a.parentProjectId === filterProjectId);
+            filtered = filtered.filter(a => a.parent_project_id === filterProjectId);
         }
         if (searchTerm) {
             const lowerTerm = searchTerm.toLowerCase();
@@ -73,7 +73,7 @@ const ContentProgressView: React.FC<ContentProgressViewProps> = ({ setPage, filt
         setSelectedArticle(article);
         setEditedContent(article.content);
         setIsModalOpen(true);
-        setShowPreview(false); 
+        setShowPreview(false);
     };
 
     const handleCloseModal = () => {
@@ -89,7 +89,7 @@ const ContentProgressView: React.FC<ContentProgressViewProps> = ({ setPage, filt
             handleCloseModal();
             return;
         }
-        
+
         const baseTitle = selectedArticle.title.replace(/\s\(Version \d+\)$/, '').trim();
         const lineage = articles.filter(a => a.title.replace(/\s\(Version \d+\)$/, '').trim() === baseTitle);
         const nextVersion = lineage.length + 1;
@@ -100,14 +100,14 @@ const ContentProgressView: React.FC<ContentProgressViewProps> = ({ setPage, filt
             id: `article-${Date.now()}`,
             title: newTitle,
             content: editedContent.trim(),
-            createdAt: new Date().toISOString(),
-            publishedDestinations: [],
+            created_at: new Date().toISOString(),
+            published_destinations: [],
         };
 
         setArticles([...articles, newArticle]);
         handleCloseModal();
     };
-    
+
     const handleToggleSelection = (articleId: string) => {
         setSelectedArticles(prev => {
             const newSet = new Set(prev);
@@ -140,20 +140,20 @@ const ContentProgressView: React.FC<ContentProgressViewProps> = ({ setPage, filt
     const handleAddToQueue = () => {
         const selectedIds = Array.from(selectedArticles);
         const articlesToAdd = articles.filter(a => selectedIds.includes(a.id));
-        
+
         const newQueueItems: PublishingItem[] = articlesToAdd.map(article => ({
             id: `queue-article-${article.id}-${Date.now()}`,
-            sourceId: article.id,
-            sourceType: 'article',
+            source_id: article.id,
+            source_type: 'article',
             name: article.title,
             status: 'queued',
             log: '等待发布',
         }));
 
         setPublishingQueue(prev => {
-             const existingIds = new Set(prev.map(p => p.sourceId));
-             const uniqueNewItems = newQueueItems.filter(item => !existingIds.has(item.sourceId));
-             return [...prev, ...uniqueNewItems];
+            const existingIds = new Set(prev.map(p => p.source_id));
+            const uniqueNewItems = newQueueItems.filter(item => !existingIds.has(item.source_id));
+            return [...prev, ...uniqueNewItems];
         });
         setSelectedArticles(new Set());
         alert(`${newQueueItems.length}篇文章已添加到发布队列。`);
@@ -168,10 +168,10 @@ const ContentProgressView: React.FC<ContentProgressViewProps> = ({ setPage, filt
         const end = textarea.selectionEnd;
         const text = textarea.value;
         const selectedText = text.substring(start, end);
-        
+
         const newText = text.substring(0, start) + before + selectedText + after + text.substring(end);
         setEditedContent(newText);
-        
+
         // Reset cursor focus and position (after the insertion)
         setTimeout(() => {
             textarea.focus();
@@ -220,31 +220,31 @@ const ContentProgressView: React.FC<ContentProgressViewProps> = ({ setPage, filt
                     <label htmlFor="select-all-articles" className="text-white font-medium">全选</label>
                 </div>
                 <div className="w-64">
-                    <Input 
-                        value={searchTerm} 
-                        onChange={(e) => setSearchTerm(e.target.value)} 
-                        placeholder="搜索文章标题..." 
+                    <Input
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        placeholder="搜索文章标题..."
                         className="py-1.5"
                     />
                 </div>
             </div>
-            
+
             <div className="space-y-4 pb-20">
                 {displayArticles.length > 0 ? displayArticles.map(article => {
-                    const parentProject = projects.find(p => p.id === article.parentProjectId);
-                    const subProject = keywordLibrary.find(sp => sp.id === article.subProjectId);
-                    
+                    const parentProject = projects.find(p => p.id === article.parent_project_id);
+                    const subProject = keywordLibrary.find(sp => sp.id === article.sub_project_id);
+
                     return (
                         <Card key={article.id}>
                             <div className="flex items-start gap-4">
-                                 <Checkbox
+                                <Checkbox
                                     id={`select-article-${article.id}`}
                                     checked={selectedArticles.has(article.id)}
                                     onChange={() => handleToggleSelection(article.id)}
                                     className="mt-2"
                                     aria-label={`选择文章 ${article.title}`}
                                 />
-                                <div 
+                                <div
                                     className="flex-1 cursor-pointer"
                                     onClick={() => handleCardClick(article)}
                                 >
@@ -254,13 +254,13 @@ const ContentProgressView: React.FC<ContentProgressViewProps> = ({ setPage, filt
                                             <p className="text-sm text-gray-400 mt-1">
                                                 项目: <span className="font-semibold text-gray-300">{parentProject?.name || 'N/A'} / {subProject?.name || 'N/A'}</span>
                                             </p>
-                                             <div className="mt-2">
+                                            <div className="mt-2">
                                                 <StatusBadgeGrid destinations={article.publishedDestinations} />
                                             </div>
                                         </div>
                                         <div className="text-right flex-shrink-0 ml-4">
-                                            <p className="text-xs text-gray-500">创建于: {new Date(article.createdAt).toLocaleDateString()}</p>
-                                            <p className="text-xs text-gray-500 mt-1">模型: <span className="font-semibold text-gray-400">{article.modelUsed}</span></p>
+                                            <p className="text-xs text-gray-500">创建于: {new Date(article.created_at).toLocaleDateString()}</p>
+                                            <p className="text-xs text-gray-500 mt-1">模型: <span className="font-semibold text-gray-400">{article.model_used}</span></p>
                                         </div>
                                     </div>
                                 </div>
@@ -275,7 +275,7 @@ const ContentProgressView: React.FC<ContentProgressViewProps> = ({ setPage, filt
             </div>
 
             {selectedArticles.size > 0 && (
-                 <div className="fixed bottom-6 right-8 bg-gray-800 p-4 rounded-lg shadow-2xl border border-gray-700 flex items-center gap-4 z-50 animate-fade-in-up">
+                <div className="fixed bottom-6 right-8 bg-gray-800 p-4 rounded-lg shadow-2xl border border-gray-700 flex items-center gap-4 z-50 animate-fade-in-up">
                     <span className="text-white font-semibold">{selectedArticles.size} 已选择</span>
                     <Button variant="secondary" size="sm" onClick={() => setSelectedArticles(new Set())}>取消选择</Button>
                     <Button variant="primary" size="sm" onClick={handleAddToQueue}>
@@ -301,8 +301,8 @@ const ContentProgressView: React.FC<ContentProgressViewProps> = ({ setPage, filt
                             </div>
                             <div className="flex gap-2">
                                 {setPage && (
-                                    <Button 
-                                        size="sm" 
+                                    <Button
+                                        size="sm"
                                         variant="secondary"
                                         onClick={handleVisualize}
                                     >
@@ -310,9 +310,9 @@ const ContentProgressView: React.FC<ContentProgressViewProps> = ({ setPage, filt
                                         配图
                                     </Button>
                                 )}
-                                <Button 
-                                    size="sm" 
-                                    variant={showPreview ? 'primary' : 'secondary'} 
+                                <Button
+                                    size="sm"
+                                    variant={showPreview ? 'primary' : 'secondary'}
                                     onClick={() => setShowPreview(!showPreview)}
                                 >
                                     <EyeIcon className="w-4 h-4 mr-2" />
@@ -320,9 +320,9 @@ const ContentProgressView: React.FC<ContentProgressViewProps> = ({ setPage, filt
                                 </Button>
                             </div>
                         </div>
-                        
+
                         <div className={`flex-grow overflow-hidden gap-4 ${showPreview ? 'grid grid-cols-2' : 'flex'}`}>
-                             <div className="h-full flex flex-col w-full">
+                            <div className="h-full flex flex-col w-full">
                                 <textarea
                                     ref={textareaRef}
                                     value={editedContent}
@@ -331,13 +331,13 @@ const ContentProgressView: React.FC<ContentProgressViewProps> = ({ setPage, filt
                                     placeholder="在此处编辑 Markdown 内容..."
                                     autoFocus
                                 />
-                             </div>
-                             
-                             {showPreview && (
-                                 <div className="h-full bg-white text-gray-900 rounded-md p-6 overflow-y-auto prose prose-sm max-w-none shadow-inner">
-                                     <div dangerouslySetInnerHTML={{ __html: markdownToHtml(editedContent) }} />
-                                 </div>
-                             )}
+                            </div>
+
+                            {showPreview && (
+                                <div className="h-full bg-white text-gray-900 rounded-md p-6 overflow-y-auto prose prose-sm max-w-none shadow-inner">
+                                    <div dangerouslySetInnerHTML={{ __html: markdownToHtml(editedContent) }} />
+                                </div>
+                            )}
                         </div>
 
                         <div className="flex-shrink-0 flex justify-between items-center pt-4 border-t border-gray-700 mt-4">
@@ -346,8 +346,8 @@ const ContentProgressView: React.FC<ContentProgressViewProps> = ({ setPage, filt
                             </div>
                             <div className="flex gap-3">
                                 <Button variant="secondary" onClick={handleCloseModal}>取消</Button>
-                                <Button 
-                                    variant="primary" 
+                                <Button
+                                    variant="primary"
                                     onClick={handleSave}
                                     disabled={!editedContent.trim() || editedContent.trim() === selectedArticle.content.trim()}
                                 >

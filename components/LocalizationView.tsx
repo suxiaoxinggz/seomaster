@@ -186,12 +186,12 @@ export const LocalizationView: React.FC = () => {
                 id: `article-${Date.now()}`,
                 title: translatedTitle || `${sourceArticle.title} (${targetLanguage})`,
                 content: translatedContent,
-                keywordContext: sourceArticle.keywordContext, // Inherit context
-                parentProjectId: sourceArticle.parentProjectId,
-                subProjectId: sourceArticle.subProjectId,
-                createdAt: new Date().toISOString(),
-                modelUsed: `${providerName} (Translation)`,
-                publishedDestinations: [],
+                keyword_context: sourceArticle.keyword_context, // Inherit context
+                parent_project_id: sourceArticle.parent_project_id,
+                sub_project_id: sourceArticle.sub_project_id,
+                created_at: new Date().toISOString(),
+                model_used: `${providerName} (Translation)`,
+                published_destinations: [],
             };
 
             const { error } = await supabase.from('articles').insert({ ...newArticle, user_id: session.user.id } as any);
@@ -273,7 +273,7 @@ export const LocalizationView: React.FC = () => {
                     {sourceArticle && (
                         <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700 text-sm text-gray-400">
                             <p><strong>源字数:</strong> {sourceArticle.content.length} chars</p>
-                            <p className="mt-1"><strong>创建于:</strong> {new Date(sourceArticle.createdAt).toLocaleDateString()}</p>
+                            <p className="mt-1"><strong>创建于:</strong> {new Date(sourceArticle.created_at).toLocaleDateString()}</p>
                         </div>
                     )}
                 </div>

@@ -34,11 +34,11 @@ const PostItem: React.FC<{
     handleToggleSelection: (id: string) => void;
     setViewingPost: (post: PostToPublish) => void;
 }> = ({ post, projects, keywordLibrary, selectedPosts, handleToggleSelection, setViewingPost }) => {
-    const parentProject = projects.find(p => p.id === post.parentProjectId);
-    const subProject = keywordLibrary.find(sp => sp.id === post.subProjectId);
+    const parentProject = projects.find(p => p.id === post.parent_project_id);
+    const subProject = keywordLibrary.find(sp => sp.id === post.sub_project_id);
 
     const keywordsPreview = useMemo(() => {
-        return post.keywordContext
+        return post.keyword_context
             .split('\n')
             .map(line => line.trim())
             .filter(line => line.toLowerCase().includes('keyword:') || line.toLowerCase().includes('lsi:'))
@@ -46,7 +46,7 @@ const PostItem: React.FC<{
             .filter(Boolean)
             .slice(0, 15)
             .join('; ');
-    }, [post.keywordContext]);
+    }, [post.keyword_context]);
 
     return (
         <Card className="cursor-pointer hover:border-blue-500/50 transition-colors" >
@@ -66,12 +66,12 @@ const PostItem: React.FC<{
                         <div className='flex-1'>
                             <h3 className="text-xl font-bold text-white truncate">{post.title}</h3>
                             <div className="mt-2">
-                                <StatusBadgeGrid destinations={post.publishedDestinations} />
+                                <StatusBadgeGrid destinations={post.published_destinations} />
                             </div>
                         </div>
                         <p className="text-xs text-gray-500 text-right flex-shrink-0 ml-4">
                             {parentProject?.name}{subProject && ` / ${subProject.name}`}<br />
-                            {post.usedImages.length} 张图片 | {new Date(post.createdAt).toLocaleDateString()}
+                            {post.used_images.length} 张图片 | {new Date(post.created_at).toLocaleDateString()}
                         </p>
                     </div>
                     <p className="text-sm text-gray-400 mt-2 truncate" title={keywordsPreview}>
@@ -121,16 +121,16 @@ export const PostsToPublishView: React.FC = () => {
 
         const newQueueItems: PublishingItem[] = postsToAdd.map(post => ({
             id: `queue-post-${post.id}-${Date.now()}`,
-            sourceId: post.id,
-            sourceType: 'post',
+            source_id: post.id,
+            source_type: 'post',
             name: post.title,
             status: 'queued',
             log: '等待发布',
         }));
 
         setPublishingQueue(prev => {
-            const existingIds = new Set(prev.map(p => p.sourceId));
-            const uniqueNewItems = newQueueItems.filter(item => !existingIds.has(item.sourceId));
+            const existingIds = new Set(prev.map(p => p.source_id));
+            const uniqueNewItems = newQueueItems.filter(item => !existingIds.has(item.source_id));
             return [...prev, ...uniqueNewItems];
         });
         setSelectedPosts(new Set());
@@ -143,7 +143,7 @@ export const PostsToPublishView: React.FC = () => {
             .filter(p => selectedIds.includes(p.id))
             .forEach(p => {
                 const filename = `${p.title.replace(/[^a-z0-9]/gi, '_').slice(0, 50)}.html`;
-                downloadHTML(p.htmlContent, filename);
+                downloadHTML(p.html_content, filename);
             });
     };
 
@@ -205,7 +205,7 @@ export const PostsToPublishView: React.FC = () => {
                         <div className="p-4 bg-white rounded-md flex-grow overflow-y-auto">
                             <div
                                 className="prose max-w-none"
-                                dangerouslySetInnerHTML={{ __html: viewingPost.htmlContent }}
+                                dangerouslySetInnerHTML={{ __html: viewingPost.html_content }}
                             />
                         </div>
                     </div>

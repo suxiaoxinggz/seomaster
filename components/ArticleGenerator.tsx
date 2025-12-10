@@ -15,7 +15,7 @@ import { toast } from 'react-hot-toast';
 // Helper to format a sub-project into a string for the context textarea
 const formatSubProjectForContext = (subProject: KeywordSubProject): string => {
     let context = `Sub-Project: ${subProject.name}\n`;
-    context += `Model Used: ${subProject.modelUsed}\n\n`;
+    context += `Model Used: ${subProject.model_used}\n\n`;
 
     subProject.keywords.forEach(l1 => {
         context += `--- Core Keyword ---\n`;
@@ -197,8 +197,8 @@ const ArticleGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
                 const newProject = {
                     id: `proj-${Date.now()}`,
                     name: newParentProjectName.trim(),
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString(),
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
                 };
                 const { data: newProjDataRaw, error: projError } = await supabase.from('projects').insert({ ...newProject, user_id: session.user.id } as any).select().single();
                 const newProjData = newProjDataRaw as any;
@@ -210,9 +210,9 @@ const ArticleGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
                 const newSubProject = {
                     id: `subproj-${Date.now()}`,
                     name: newSubProjectName.trim(),
-                    parentProjectId: finalParentProjectId,
-                    savedAt: new Date().toISOString(),
-                    modelUsed: generationModel.nickname,
+                    parent_project_id: finalParentProjectId,
+                    saved_at: new Date().toISOString(),
+                    model_used: generationModel.nickname,
                     keywords: [],
                 };
                 const { data: newSubProjDataRaw, error: subProjError } = await supabase.from('keyword_library').insert({ ...newSubProject, user_id: session.user.id } as any).select().single();
@@ -226,9 +226,9 @@ const ArticleGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
                 const newSubProject = {
                     id: `subproj-${Date.now()}`,
                     name: newSubProjectName.trim(),
-                    parentProjectId: finalParentProjectId,
-                    savedAt: new Date().toISOString(),
-                    modelUsed: generationModel.nickname,
+                    parent_project_id: finalParentProjectId,
+                    saved_at: new Date().toISOString(),
+                    model_used: generationModel.nickname,
                     keywords: [],
                 };
                 const { data: newSubProjDataRaw, error: subProjError } = await supabase.from('keyword_library').insert({ ...newSubProject, user_id: session.user.id } as any).select().single();
@@ -244,12 +244,12 @@ const ArticleGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
                 id: articleId,
                 title: articleTitle.trim(),
                 content: generatedArticle,
-                keywordContext: keywordContext,
-                parentProjectId: finalParentProjectId,
-                subProjectId: finalSubProjectId,
-                createdAt: new Date().toISOString(),
-                modelUsed: generationModel.nickname,
-                publishedDestinations: [],
+                keyword_context: keywordContext,
+                parent_project_id: finalParentProjectId,
+                sub_project_id: finalSubProjectId,
+                created_at: new Date().toISOString(),
+                model_used: generationModel.nickname,
+                published_destinations: [],
             };
 
             const { error: articleError } = await supabase.from('articles').insert({ ...newArticle, user_id: session.user.id } as any);
@@ -267,7 +267,7 @@ const ArticleGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
 
     const handleSelectSubProject = (subProject: KeywordSubProject) => {
         setKeywordContext(formatSubProjectForContext(subProject));
-        setSaveToParentProject(subProject.parentProjectId);
+        setSaveToParentProject(subProject.parent_project_id);
         setSaveToSubProject(subProject.id);
         setIsLibraryModalOpen(false);
     };
@@ -318,7 +318,7 @@ const ArticleGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
                                 {presetModels.map(m => <option key={m.id} value={m.id}>{m.nickname}</option>)}
                             </optgroup>
                         </Select>
-                        <Toggle label="Enable Web Search" enabled={enableWebSearch} setEnabled={setEnableWebSearch} disabled={!currentSelectedModel?.supportsWebSearch} />
+                        <Toggle label="Enable Web Search" enabled={enableWebSearch} setEnabled={setEnableWebSearch} disabled={!currentSelectedModel?.supports_web_search} />
                     </div>
                 </Card>
                 <div className="mt-auto pt-4">
@@ -397,7 +397,7 @@ const ArticleGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
                             {keywordLibrary.map(sp => (
                                 <li key={sp.id} className="p-3 bg-gray-700 rounded-lg hover:bg-gray-600 cursor-pointer" onClick={() => handleSelectSubProject(sp)}>
                                     <p className="font-semibold text-white">{sp.name}</p>
-                                    <p className="text-sm text-gray-400">父项目: {projects.find(p => p.id === sp.parentProjectId)?.name}</p>
+                                    <p className="text-sm text-gray-400">父项目: {projects.find(p => p.id === sp.parent_project_id)?.name}</p>
                                 </li>
                             ))}
                         </ul>
@@ -437,7 +437,7 @@ const ArticleGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
                         <>
                             <Select label="子项目" value={saveToSubProject} onChange={(e) => setSaveToSubProject(e.target.value)}>
                                 <option value="">选择子项目...</option>
-                                {keywordLibrary.filter(sp => sp.parentProjectId === saveToParentProject).map(sp => <option key={sp.id} value={sp.id}>{sp.name}</option>)}
+                                {keywordLibrary.filter(sp => sp.parent_project_id === saveToParentProject).map(sp => <option key={sp.id} value={sp.id}>{sp.name}</option>)}
                                 <option value="create_new">+ 创建新子项目</option>
                             </Select>
                             {saveToSubProject === 'create_new' && (

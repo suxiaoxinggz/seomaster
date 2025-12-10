@@ -69,16 +69,16 @@ const ModelSettings: React.FC = () => {
         } else {
             setEditingModel({
                 type: ModelProvider.CUSTOM,
-                supportsWebSearch: false,
-                apiProvider: ApiProvider.OPENAI_COMPATIBLE,
-                baseURL: '',
+                supports_web_search: false,
+                api_provider: ApiProvider.OPENAI_COMPATIBLE,
+                base_url: '',
             });
         }
         setIsModalOpen(true);
     };
 
     const handleProviderChange = (provider: ApiProvider) => {
-        let baseURL = editingModel?.baseURL || '';
+        let baseURL = editingModel?.base_url || '';
         // Auto-fill base URL helpers
         switch (provider) {
             case ApiProvider.DEEPSEEK: baseURL = 'https://api.deepseek.com'; break;
@@ -93,8 +93,9 @@ const ModelSettings: React.FC = () => {
             case ApiProvider.OPENROUTER: baseURL = 'https://openrouter.ai/api/v1'; break;
             case ApiProvider.MODELSCOPE: baseURL = 'https://api-inference.modelscope.cn/v1'; break;
             case ApiProvider.OPENAI: baseURL = 'https://api.openai.com/v1'; break;
+            case ApiProvider.GEMINI: baseURL = 'https://generativelanguage.googleapis.com/v1beta/openai/'; break;
         }
-        setEditingModel({ ...editingModel, apiProvider: provider, baseURL });
+        setEditingModel({ ...editingModel, api_provider: provider, base_url: baseURL });
     };
 
     const handleCloseModal = () => {
@@ -104,13 +105,13 @@ const ModelSettings: React.FC = () => {
     };
 
     const handleFetchModels = async () => {
-        if (!editingModel?.baseURL || !editingModel?.apiKey) {
+        if (!editingModel?.base_url || !editingModel?.api_key) {
             alert("Please enter Base URL and API Key first.");
             return;
         }
         setIsFetchingModels(true);
         try {
-            const list = await fetchRemoteModels(editingModel.baseURL, editingModel.apiKey);
+            const list = await fetchRemoteModels(editingModel.base_url, editingModel.api_key);
             setFetchedModels(list);
             if (list.length > 0) {
                 if (!editingModel.id) {
@@ -128,7 +129,7 @@ const ModelSettings: React.FC = () => {
 
     const handleTestConnection = async () => {
         if (!editingModel) return;
-        if (editingModel.apiProvider !== ApiProvider.GEMINI && (!editingModel.apiKey || !editingModel.baseURL)) {
+        if (editingModel.api_provider !== ApiProvider.GEMINI && (!editingModel.api_key || !editingModel.base_url)) {
             alert("Please enter API Key and Base URL to test.");
             return;
         }
@@ -144,13 +145,13 @@ const ModelSettings: React.FC = () => {
             id: editingModel.id,
             user_id: 'temp',
             nickname: editingModel.nickname || 'Temp',
-            apiKey: editingModel.apiKey || '',
-            baseURL: editingModel.baseURL || '',
+            api_key: editingModel.api_key || '',
+            base_url: editingModel.base_url || '',
             version: '',
-            supportsWebSearch: false,
+            supports_web_search: false,
             type: editingModel.type || ModelProvider.CUSTOM,
-            apiProvider: editingModel.apiProvider || ApiProvider.OPENAI_COMPATIBLE,
-            isDefault: false
+            api_provider: editingModel.api_provider || ApiProvider.OPENAI_COMPATIBLE,
+            is_default: false
         };
 
         const result = await verifyModelConnection(tempModel);
@@ -172,19 +173,19 @@ const ModelSettings: React.FC = () => {
                 id: editingModel.id,
                 user_id: session?.user?.id || 'guest',
                 nickname: editingModel.nickname!,
-                apiKey: editingModel.apiKey || '',
-                baseURL: editingModel.baseURL || '',
+                api_key: editingModel.api_key || '',
+                base_url: editingModel.base_url || '',
                 version: editingModel.version || '',
-                supportsWebSearch: editingModel.supportsWebSearch || false,
+                supports_web_search: editingModel.supports_web_search || false,
                 type: isStrictPresetUpdate ? ModelProvider.PRESET : ModelProvider.CUSTOM,
-                apiProvider: editingModel.apiProvider || ApiProvider.OPENAI_COMPATIBLE,
-                isDefault: editingModel.isDefault || false
+                api_provider: editingModel.api_provider || ApiProvider.OPENAI_COMPATIBLE,
+                is_default: editingModel.is_default || false
             };
 
             if (session && supabase) {
                 if (isStrictPresetUpdate) {
                     const { error } = await (supabase.from('models') as any)
-                        .update({ apiKey: finalModel.apiKey, baseURL: finalModel.baseURL, nickname: finalModel.nickname })
+                        .update({ api_key: finalModel.api_key, base_url: finalModel.base_url, nickname: finalModel.nickname })
                         .eq('id', finalModel.id);
                     if (error) throw error;
                 } else {
@@ -229,8 +230,8 @@ const ModelSettings: React.FC = () => {
         setDefaultModelId(id);
         if (session && supabase) {
             try {
-                await (supabase.from('models') as any).update({ isDefault: false }).eq('user_id', session.user.id);
-                await (supabase.from('models') as any).update({ isDefault: true }).eq('id', id);
+                await (supabase.from('models') as any).update({ is_default: false }).eq('user_id', session.user.id);
+                await (supabase.from('models') as any).update({ is_default: true }).eq('id', id);
                 await fetchData();
             } catch (error) {
                 console.error("Failed to sync default model to DB", error);
@@ -240,11 +241,11 @@ const ModelSettings: React.FC = () => {
 
     const filteredModels = useMemo(() => {
         if (filterProvider === 'all') return models;
-        return models.filter(m => m.apiProvider === filterProvider);
+        return models.filter(m => m.api_provider === filterProvider);
     }, [models, filterProvider]);
 
     const uniqueProviders = useMemo(() => {
-        return Array.from(new Set(models.map(m => m.apiProvider)));
+        return Array.from(new Set(models.map(m => m.api_provider)));
     }, [models]);
 
     const ModelCard: React.FC<{ model: Model }> = ({ model }) => {
@@ -257,11 +258,11 @@ const ModelSettings: React.FC = () => {
                     <div className="flex justify-between items-start mb-4">
                         <div className="flex items-center gap-3">
                             <div className="p-2 bg-gray-900 rounded-lg border border-gray-700">
-                                <ProviderLogo provider={model.apiProvider} className="w-8 h-8" />
+                                <ProviderLogo provider={model.api_provider} className="w-8 h-8" />
                             </div>
                             <div>
                                 <h3 className="text-lg font-bold text-gray-100 leading-tight">{model.nickname}</h3>
-                                <p className="text-xs text-gray-500 mt-0.5">{model.apiProvider}</p>
+                                <p className="text-xs text-gray-500 mt-0.5">{model.api_provider}</p>
                             </div>
                         </div>
                         {isActive && (
@@ -276,22 +277,22 @@ const ModelSettings: React.FC = () => {
                             <span className="text-gray-500">Model ID</span>
                             <span className="text-gray-300 font-mono truncate max-w-[140px]" title={model.id}>{model.id}</span>
                         </div>
-                        {model.baseURL && (
+                        {model.base_url && (
                             <div className="flex justify-between items-center text-xs bg-black/20 p-2 rounded">
                                 <span className="text-gray-500">Base URL</span>
-                                <span className="text-gray-300 font-mono truncate max-w-[140px]" title={model.baseURL}>{model.baseURL}</span>
+                                <span className="text-gray-300 font-mono truncate max-w-[140px]" title={model.base_url}>{model.base_url}</span>
                             </div>
                         )}
                         <div className="flex justify-between items-center text-xs bg-black/20 p-2 rounded">
                             <span className="text-gray-500">API Key</span>
-                            <span className={`font-mono ${model.apiKey ? 'text-green-400' : 'text-yellow-500'}`}>
-                                {model.apiKey ? '●●●●●●●●' : 'Not Configured'}
+                            <span className={`font-mono ${model.api_key ? 'text-green-400' : 'text-yellow-500'}`}>
+                                {model.api_key ? '●●●●●●●●' : 'Not Configured'}
                             </span>
                         </div>
                     </div>
 
                     <div className="flex flex-wrap gap-2 mt-3">
-                        {model.supportsWebSearch && <span className="text-[10px] bg-green-900/30 text-green-400 px-1.5 py-0.5 rounded border border-green-800/50">Web Search</span>}
+                        {model.supports_web_search && <span className="text-[10px] bg-green-900/30 text-green-400 px-1.5 py-0.5 rounded border border-green-800/50">Web Search</span>}
                         {!isPreset && <span className="text-[10px] bg-purple-900/30 text-purple-400 px-1.5 py-0.5 rounded border border-purple-800/50">Custom</span>}
                     </div>
                 </div>
@@ -315,7 +316,20 @@ const ModelSettings: React.FC = () => {
         );
     };
 
-    const isCompatibleProtocol = [ApiProvider.OPENAI_COMPATIBLE, ApiProvider.OPENAI, ApiProvider.DEEPSEEK, ApiProvider.OPENROUTER, ApiProvider.MODELSCOPE, ApiProvider.NEBIUS, ApiProvider.GROQ, ApiProvider.SILICONFLOW, ApiProvider.ZHIPU, ApiProvider.MOONSHOT, ApiProvider.YI, ApiProvider.MISTRAL, ApiProvider.TOGETHER].includes(editingModel?.apiProvider as ApiProvider);
+    const isCompatibleProtocol = [ApiProvider.OPENAI_COMPATIBLE, ApiProvider.OPENAI, ApiProvider.DEEPSEEK, ApiProvider.GEMINI, ApiProvider.OPENROUTER, ApiProvider.MODELSCOPE, ApiProvider.NEBIUS, ApiProvider.GROQ, ApiProvider.SILICONFLOW, ApiProvider.ZHIPU, ApiProvider.MOONSHOT, ApiProvider.YI, ApiProvider.MISTRAL, ApiProvider.TOGETHER].includes(editingModel?.api_provider as ApiProvider);
+
+    // Quick Chips for common models based on provider
+    const getQuickChips = (provider: ApiProvider) => {
+        switch (provider) {
+            case ApiProvider.GEMINI: return ['gemini-2.0-flash-exp', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-1.0-pro'];
+            case ApiProvider.OPENAI: return ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo'];
+            case ApiProvider.ANTHROPIC: return ['claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022'];
+            case ApiProvider.DEEPSEEK: return ['deepseek-chat', 'deepseek-reasoner'];
+            case ApiProvider.GROQ: return ['llama-3.3-70b-versatile', 'mixtral-8x7b-32768'];
+            default: return [];
+        }
+    };
+    const quickChips = editingModel?.api_provider ? getQuickChips(editingModel.api_provider as ApiProvider) : [];
 
     return (
         <div className="p-8 max-w-7xl mx-auto">
@@ -497,17 +511,32 @@ const ModelSettings: React.FC = () => {
                                 </Select>
                             </div>
                         ) : (
-                            <Input
-                                label="Model ID"
-                                placeholder={editingModel?.apiProvider === ApiProvider.GEMINI ? 'e.g. gemini-1.5-flash, gemini-1.0-pro' : 'e.g. deepseek-chat, gpt-4-turbo'}
-                                value={editingModel?.id || ''}
-                                onChange={(e) => setEditingModel({ ...editingModel, id: e.target.value })}
-                            />
+                            <div>
+                                <Input
+                                    label="Model ID"
+                                    placeholder={editingModel?.api_provider === ApiProvider.GEMINI ? 'e.g. gemini-1.5-flash, gemini-1.0-pro' : 'e.g. deepseek-chat, gpt-4-turbo'}
+                                    value={editingModel?.id || ''}
+                                    onChange={(e) => setEditingModel({ ...editingModel, id: e.target.value })}
+                                />
+                                {quickChips.length > 0 && (
+                                    <div className="flex flex-wrap gap-2 mt-2">
+                                        {quickChips.map(chip => (
+                                            <button
+                                                key={chip}
+                                                onClick={() => setEditingModel({ ...editingModel, id: chip })}
+                                                className="text-[10px] px-2 py-1 bg-gray-800 hover:bg-blue-900/40 text-gray-300 hover:text-blue-300 border border-gray-700 rounded-full transition-colors"
+                                            >
+                                                + {chip}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         )}
                     </div>
 
                     {editingModel?.type === ModelProvider.CUSTOM && (
-                        <Toggle label="Supports Web Search Capability" enabled={editingModel?.supportsWebSearch || false} setEnabled={(enabled) => setEditingModel({ ...editingModel, supportsWebSearch: enabled })} />
+                        <Toggle label="Supports Web Search Capability" enabled={editingModel?.supports_web_search || false} setEnabled={(enabled) => setEditingModel({ ...editingModel, supports_web_search: enabled })} />
                     )}
 
                     {testStatus !== 'idle' && (

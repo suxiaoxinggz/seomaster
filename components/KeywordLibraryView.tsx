@@ -12,20 +12,20 @@ import StatusBadgeGrid from './StatusBadgeGrid';
 // Helper to format a sub-project into a string for the context textarea (Duplicated from ArticleGenerator for independence)
 const formatSubProjectForContext = (subProject: KeywordSubProject): string => {
     let context = `Sub-Project: ${subProject.name}\n`;
-    context += `Model Used: ${subProject.modelUsed}\n\n`;
+    context += `Model Used: ${subProject.model_used}\n\n`;
 
     subProject.keywords.forEach(l1 => {
         context += `--- Core Keyword ---\n`;
         context += `Keyword: ${l1.keyword}\n`;
         context += `Type: ${l1.type}\n`;
         context += `Page Type: ${l1.pageType}\n\n`;
-        
+
         l1.children.forEach(l2 => {
             context += `  --- Sub-core Keyword ---\n`;
             context += `  Keyword: ${l2.keyword}\n`;
             context += `  Type: ${l2.type}\n`;
-            if(l2.lsi.length > 0) {
-                 context += `  LSI: ${l2.lsi.map(l => l.text).join(', ')}\n\n`;
+            if (l2.lsi.length > 0) {
+                context += `  LSI: ${l2.lsi.map(l => l.text).join(', ')}\n\n`;
             }
         });
     });
@@ -48,13 +48,13 @@ const downloadCSV = (content: string, filename: string) => {
 
 // Add a mapping for English page types from legacy data to the Chinese equivalents used in filters.
 const PAGE_TYPE_MAP: { [key: string]: string } = {
-  'Product Detail Pages': '产品详情类',
-  'Article/Blog Pages': '文章类',
-  'Hub/Category Pages': '聚合类',
-  // Map Chinese values to themselves to handle both old and new data gracefully.
-  '产品详情类': '产品详情类',
-  '文章类': '文章类',
-  '聚合类': '聚合类',
+    'Product Detail Pages': '产品详情类',
+    'Article/Blog Pages': '文章类',
+    'Hub/Category Pages': '聚合类',
+    // Map Chinese values to themselves to handle both old and new data gracefully.
+    '产品详情类': '产品详情类',
+    '文章类': '文章类',
+    '聚合类': '聚合类',
 };
 
 type Translations = Record<string, string>;
@@ -81,10 +81,10 @@ const Level2Display: React.FC<{ level2Node: SavedLevel2Node; translations?: Tran
     return (
         <div className="ml-4 mt-3 pl-4 border-l-2 border-gray-700">
             <button onClick={() => setIsExpanded(!isExpanded)} className="w-full flex items-start text-left hover:bg-gray-700/50 p-1 rounded-md">
-                 <div className="flex-shrink-0 pt-1">
+                <div className="flex-shrink-0 pt-1">
                     <ChevronDownIcon className={`w-5 h-5 mr-2 transition-transform ${isExpanded ? 'rotate-0' : '-rotate-90'}`} />
-                 </div>
-                 <div>
+                </div>
+                <div>
                     <h4 className="font-semibold text-md text-teal-300">{level2Node.keyword}</h4>
                     {translations?.[level2Node.id] && <p className="text-sm text-cyan-400 mt-1">{translations[level2Node.id]}</p>}
                     <span className={`mt-1 inline-block px-2 py-0.5 text-xs font-semibold rounded-full ${typeColor}`}>{level2Node.type}</span>
@@ -102,15 +102,15 @@ const Level2Display: React.FC<{ level2Node: SavedLevel2Node; translations?: Tran
 const Level1Display: React.FC<{ level1Node: SavedLevel1Node; translations?: Translations }> = ({ level1Node, translations }) => {
     const [isExpanded, setIsExpanded] = useState(true);
     const typeColor = level1Node.type === '引流型' ? 'bg-blue-900/50 text-blue-300' :
-                      level1Node.type === '对比型' ? 'bg-yellow-900/50 text-yellow-300' :
-                      'bg-green-900/50 text-green-300';
+        level1Node.type === '对比型' ? 'bg-yellow-900/50 text-yellow-300' :
+            'bg-green-900/50 text-green-300';
     return (
         <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-3 mt-3">
-             <button onClick={() => setIsExpanded(!isExpanded)} className="w-full flex items-center justify-between p-2 rounded-md hover:bg-gray-700/50 transition-colors">
+            <button onClick={() => setIsExpanded(!isExpanded)} className="w-full flex items-center justify-between p-2 rounded-md hover:bg-gray-700/50 transition-colors">
                 <div className="text-left">
                     <h3 className="font-bold text-lg text-sky-300">{level1Node.keyword}</h3>
                     {translations?.[level1Node.id] && <p className="text-sm text-cyan-400 mt-1">{translations[level1Node.id]}</p>}
-                     <div className="flex items-center gap-2 mt-1">
+                    <div className="flex items-center gap-2 mt-1">
                         <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${typeColor}`}>{level1Node.type}</span>
                         <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-gray-600 text-gray-300">{level1Node.pageType}</span>
                     </div>
@@ -118,9 +118,9 @@ const Level1Display: React.FC<{ level1Node: SavedLevel1Node; translations?: Tran
                 <ChevronDownIcon className={`w-6 h-6 text-gray-400 transition-transform ${isExpanded ? 'rotate-0' : '-rotate-90'}`} />
             </button>
             {isExpanded && (
-                 <div className="mt-2">
+                <div className="mt-2">
                     {level1Node.children.map(level2 => <Level2Display key={level2.id} level2Node={level2} translations={translations} />)}
-                 </div>
+                </div>
             )}
         </div>
     );
@@ -137,8 +137,8 @@ const SubProjectCard: React.FC<{
     onDraftArticle: (subProject: KeywordSubProject) => void;
 }> = ({ subProject, articleCount, isExpanded, onToggleExpand, isSelected, onToggleSelection, onDraftArticle }) => {
     const { projects } = useContext(AppContext) || { projects: [] };
-    const parentProject = projects.find(p => p.id === subProject.parentProjectId);
-    
+    const parentProject = projects.find(p => p.id === subProject.parent_project_id);
+
     return (
         <Card>
             <div className="flex items-start gap-4">
@@ -150,7 +150,7 @@ const SubProjectCard: React.FC<{
                     aria-label={`选择子项目 ${subProject.name}`}
                 />
                 <div className="flex-1">
-                     <div className="flex justify-between items-start">
+                    <div className="flex justify-between items-start">
                         <div className="flex-1 cursor-pointer" onClick={onToggleExpand}>
                             <div className="flex items-center gap-3">
                                 <h3 className="text-xl font-bold text-white">{subProject.name}</h3>
@@ -164,14 +164,14 @@ const SubProjectCard: React.FC<{
                             <p className="text-sm text-gray-400 mt-1">
                                 父项目: <span className="font-semibold text-gray-300">{parentProject?.name || 'N/A'}</span>
                             </p>
-                             <div className="mt-2">
-                                <StatusBadgeGrid destinations={subProject.publishedDestinations || []} />
+                            <div className="mt-2">
+                                <StatusBadgeGrid destinations={subProject.published_destinations || []} />
                             </div>
                         </div>
                         <div className="text-right flex items-center gap-4">
-                            <Button 
-                                size="sm" 
-                                variant="secondary" 
+                            <Button
+                                size="sm"
+                                variant="secondary"
                                 onClick={() => onDraftArticle(subProject)}
                                 className="flex items-center"
                             >
@@ -179,8 +179,8 @@ const SubProjectCard: React.FC<{
                                 去写文章
                             </Button>
                             <div className="flex-shrink-0 cursor-pointer" onClick={onToggleExpand}>
-                                <p className="text-xs text-gray-500">保存于: {new Date(subProject.savedAt).toLocaleDateString()}</p>
-                                <p className="text-xs text-gray-500 mt-1">模型: <span className="font-semibold text-gray-400">{subProject.modelUsed}</span></p>
+                                <p className="text-xs text-gray-500">保存于: {new Date(subProject.saved_at).toLocaleDateString()}</p>
+                                <p className="text-xs text-gray-500 mt-1">模型: <span className="font-semibold text-gray-400">{subProject.model_used}</span></p>
                             </div>
                             <div className="cursor-pointer" onClick={onToggleExpand}>
                                 <ChevronDownIcon className={`w-5 h-5 text-gray-400 transition-transform flex-shrink-0 ${isExpanded ? 'rotate-180' : 'rotate-0'}`} />
@@ -204,10 +204,10 @@ interface KeywordLibraryViewProps {
     setPage?: (page: Page) => void;
 }
 
-export const KeywordLibraryView: React.FC<KeywordLibraryViewProps> = ({ filterProjectId = null, onClearFilter = () => {}, setPage }) => {
+export const KeywordLibraryView: React.FC<KeywordLibraryViewProps> = ({ filterProjectId = null, onClearFilter = () => { }, setPage }) => {
     const context = useContext(AppContext);
     const { keywordLibrary, articles, projects, fetchData, supabase, setNavigationPayload } = context || {}; // Destructure articles
-    
+
     const [filters, setFilters] = useState<FilterState>({ category: '', pageType: '', userBehavior: '' });
     const [expandedStates, setExpandedStates] = useState<Record<string, boolean>>({});
     const [selectedSubProjects, setSelectedSubProjects] = useState<Set<string>>(new Set());
@@ -215,21 +215,21 @@ export const KeywordLibraryView: React.FC<KeywordLibraryViewProps> = ({ filterPr
     const sourceLibrary = useMemo(() => {
         if (!keywordLibrary) return [];
         return filterProjectId
-            ? keywordLibrary.filter(sp => sp.parentProjectId === filterProjectId)
+            ? keywordLibrary.filter(sp => sp.parent_project_id === filterProjectId)
             : keywordLibrary;
     }, [keywordLibrary, filterProjectId]);
-    
+
     // Count articles per subproject for the badge
     const articleCounts = useMemo(() => {
         const counts: Record<string, number> = {};
         if (articles && keywordLibrary) {
             keywordLibrary.forEach(sp => {
-                counts[sp.id] = articles.filter(a => a.subProjectId === sp.id).length;
+                counts[sp.id] = articles.filter(a => a.sub_project_id === sp.id).length;
             });
         }
         return counts;
     }, [articles, keywordLibrary]);
-    
+
     const displayLibrary = useMemo(() => {
         const { category, pageType, userBehavior } = filters;
         if (!category && !pageType && !userBehavior) {
@@ -254,11 +254,11 @@ export const KeywordLibraryView: React.FC<KeywordLibraryViewProps> = ({ filterPr
 
             return { ...subProject, keywords: filteredKeywords };
         }).filter(subProject => subProject.keywords.length > 0);
-     }, [sourceLibrary, filters]);
+    }, [sourceLibrary, filters]);
 
 
-    const parentProject = (filterProjectId && projects) 
-        ? projects.find(p => p.id === filterProjectId) 
+    const parentProject = (filterProjectId && projects)
+        ? projects.find(p => p.id === filterProjectId)
         : null;
 
     const handleExpandAll = () => {
@@ -272,7 +272,7 @@ export const KeywordLibraryView: React.FC<KeywordLibraryViewProps> = ({ filterPr
     const handleCollapseAll = () => {
         setExpandedStates({});
     };
-    
+
     const handleToggleExpand = (subProjectId: string) => {
         setExpandedStates(prev => ({ ...prev, [subProjectId]: !prev[subProjectId] }));
     };
@@ -385,7 +385,7 @@ export const KeywordLibraryView: React.FC<KeywordLibraryViewProps> = ({ filterPr
         const selectedIds = Array.from(selectedSubProjects);
         const subProjectsToExport = keywordLibrary
             .filter(sp => selectedIds.includes(sp.id));
-        
+
         const csvContent = formatSubProjectDataAsCsv(subProjectsToExport);
         downloadCSV(csvContent, `sub-projects-export-${new Date().toISOString().split('T')[0]}.csv`);
         setSelectedSubProjects(new Set());
@@ -395,7 +395,7 @@ export const KeywordLibraryView: React.FC<KeywordLibraryViewProps> = ({ filterPr
         return (
             <div className="mt-8 text-center text-gray-500">
                 {filterProjectId ? (
-                     <p>此母项目下没有找到子项目。</p>
+                    <p>此母项目下没有找到子项目。</p>
                 ) : (
                     <>
                         <p>您保存的关键词子项目将显示在此处。</p>
@@ -416,12 +416,12 @@ export const KeywordLibraryView: React.FC<KeywordLibraryViewProps> = ({ filterPr
                     <Button variant="secondary" onClick={onClearFilter}>清除筛选</Button>
                 </div>
             )}
-            
-            <FilterBar 
+
+            <FilterBar
                 onFilter={setFilters}
                 onReset={() => setFilters({ category: '', pageType: '', userBehavior: '' })}
             />
-            
+
             <div className="flex items-center justify-between gap-2 mb-4 -mt-2">
                 <div className="flex items-center gap-4">
                     <Checkbox
@@ -439,10 +439,10 @@ export const KeywordLibraryView: React.FC<KeywordLibraryViewProps> = ({ filterPr
             </div>
 
             {displayLibrary.length > 0 ? (
-                 displayLibrary.map(subProject => (
-                    <SubProjectCard 
-                        key={subProject.id} 
-                        subProject={subProject} 
+                displayLibrary.map(subProject => (
+                    <SubProjectCard
+                        key={subProject.id}
+                        subProject={subProject}
                         articleCount={articleCounts[subProject.id] || 0} // Pass count
                         isExpanded={!!expandedStates[subProject.id]}
                         onToggleExpand={() => handleToggleExpand(subProject.id)}
@@ -452,13 +452,13 @@ export const KeywordLibraryView: React.FC<KeywordLibraryViewProps> = ({ filterPr
                     />
                 ))
             ) : (
-                 <div className="text-center py-10 text-gray-500">
+                <div className="text-center py-10 text-gray-500">
                     <p>没有子项目符合您的筛选条件。</p>
                 </div>
             )}
 
             {selectedSubProjects.size > 0 && (
-                 <div className="fixed bottom-6 right-8 bg-gray-800 p-4 rounded-lg shadow-2xl border border-gray-700 flex items-center gap-4 z-50 animate-fade-in-up">
+                <div className="fixed bottom-6 right-8 bg-gray-800 p-4 rounded-lg shadow-2xl border border-gray-700 flex items-center gap-4 z-50 animate-fade-in-up">
                     <span className="text-white font-semibold">{selectedSubProjects.size} 已选择</span>
                     <Button variant="secondary" size="sm" onClick={() => setSelectedSubProjects(new Set())}>取消选择</Button>
                     <Button variant="primary" size="sm" onClick={handleExportSelected}>导出 (CSV)</Button>

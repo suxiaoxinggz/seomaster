@@ -669,8 +669,8 @@ const ImageTextProcessor: React.FC = () => {
         setArticleContent(article.content);
         setKeywordContext(article.keywordContext);
         setSourceArticleId(article.id); // Track source
-        setSaveImagesParentProjectId(article.parentProjectId);
-        setSaveImagesSubProjectId(article.subProjectId);
+        setSaveImagesParentProjectId(article.parent_project_id);
+        setSaveImagesSubProjectId(article.sub_project_id);
         setIsLibraryModalOpen(false);
         setIsDirty(true);
     };
@@ -788,8 +788,8 @@ const ImageTextProcessor: React.FC = () => {
                     id: `proj-${Date.now()}`,
                     name: newSaveImagesParentProjectName,
                     user_id: session.user.id,
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString(),
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
                 }).select().single();
 
                 const data = rawData as any;
@@ -804,10 +804,10 @@ const ImageTextProcessor: React.FC = () => {
                 name: imageSetTag || `Set ${new Date().toLocaleTimeString()}`,
                 searchTermOrPrompt: searchTerm,
                 images: persistedImages,
-                createdAt: new Date().toISOString(),
-                parentProjectId: parentId || '',
-                subProjectId: saveImagesSubProjectId === 'create_new' ? '' : saveImagesSubProjectId || '', // Handle new subproj logic if needed, keeping simple
-                publishedDestinations: []
+                created_at: new Date().toISOString(),
+                parent_project_id: parentId || '',
+                sub_project_id: saveImagesSubProjectId === 'create_new' ? '' : saveImagesSubProjectId || '', // Handle new subproj logic if needed, keeping simple
+                published_destinations: [],
             };
 
             // Fix: Cast supabase client to any to bypass strict type checking for this specific insert
@@ -909,7 +909,7 @@ const ImageTextProcessor: React.FC = () => {
                     {articles.map(article => (
                         <div key={article.id} onClick={() => handleSelectArticle(article)} className="p-3 bg-gray-800 hover:bg-gray-700 cursor-pointer rounded border border-gray-700">
                             <h4 className="font-bold">{article.title}</h4>
-                            <p className="text-xs text-gray-400">{new Date(article.createdAt).toLocaleDateString()}</p>
+                            <p className="text-xs text-gray-400">{new Date(article.created_at).toLocaleDateString()}</p>
                         </div>
                     ))}
                 </div>

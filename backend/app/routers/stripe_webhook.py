@@ -1,6 +1,8 @@
 
 import os
 import stripe
+from ..logger import logger
+from ..auth import get_supabase_client
 from fastapi import APIRouter, Request, Header, HTTPException
 from supabase import create_client, Client
 
@@ -49,10 +51,10 @@ async def handle_checkout_completed(session):
     amount_total = session.get("amount_total") # in cents
 
     if not user_id:
-        print(f"⚠️  No user_id found in session {session['id']}")
+        logger.warning(f"⚠️  No user_id found in session {session['id']}")
         return
 
-    print(f"✅ Payment received from {customer_email} (User: {user_id})")
+    logger.info(f"✅ Payment received from {customer_email} (User: {user_id})")
 
     # Determine Tier/Credits based on amount (Simple Logic for MVP)
     # 2900 cents ($29) -> Pro
@@ -70,41 +72,20 @@ async def handle_checkout_completed(session):
         # Maybe a small top-up?
         credits_to_add = 10
 
-    # UPGRADE USER in Supabase
     try:
-        # 1. Update Profile (Tier)
-        supabase.table("profiles").update({
-            "subscription_tier": new_tier,
-            "stripe_customer_id": session.get("customer"),
-            "subscription_status": "active"
-        }).eq("id", user_id).execute()
-
-        # 2. Add Credits (RPC call is better for atomicity, but simple get+update works for MVP)
-        # Fetch current credits
-        res = supabase.table("profiles").select("credits_balance").eq("id", user_id).single().execute()
-        current_credits = res.data.get("credits_balance", 0) or 0
-        
-        # Update with new balance
-        supabase.table("profiles").update({
-            "credits_balance": current_credits + credits_to_add
-        }).eq("id", user_id).execute()
-        
-        # 3. Log Usage (Audit)
-        supabase.table("usage_logs").insert({
-            "user_id": user_id,
-            "action": "payment_received",
-            "cost": 0,
-            "details": {
-                "amount": amount_total,
-                "tier": new_tier,
-                "credits_added": credits_to_add,
-                "stripe_session": session['id']
-            }
+        # Atomic Update via RPC (Transaction)
+        supabase.rpc("handle_payment_success", {
+            "p_user_id": user_id,
+            "p_stripe_customer_id": session.get("customer"),
+            "p_new_tier": new_tier,
+            "p_credits_to_add": credits_to_add,
+            "p_amount_total": amount_total,
+            "p_stripe_session_id": session['id']
         }).execute()
 
-        print(f"🚀 User {user_id} upgraded to {new_tier} with +{credits_to_add} credits.")
+        logger.info(f"🚀 User {user_id} upgraded to {new_tier} with +{credits_to_add} credits.")
 
     except Exception as e:
-        print(f"❌ Database Update Failed: {e}")
+        logger.error(f"❌ Database Transaction Failed: {e}")
         # In production, you might want to retry or alert admin
         raise HTTPException(status_code=500, detail="Database update failed")

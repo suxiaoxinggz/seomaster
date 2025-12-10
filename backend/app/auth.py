@@ -2,6 +2,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from supabase import create_client, Client
 import os
+from .logger import logger
 from typing import Optional
 
 security = HTTPBearer()
@@ -37,7 +38,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         return response.user
         
     except Exception as e:
-        print(f"Auth Error: {e}") # Log it
+        logger.error(f"Auth Error: {e}") 
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",

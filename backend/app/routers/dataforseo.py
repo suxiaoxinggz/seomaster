@@ -3,6 +3,7 @@ from app.auth import get_current_user
 import httpx
 import os
 import base64
+from ..logger import logger
 
 router = APIRouter()
 
@@ -47,8 +48,8 @@ async def proxy_dataforseo(
             return response.json()
             
         except httpx.RequestError as exc:
-            print(f"An error occurred while requesting {exc.request.url!r}.")
-            raise HTTPException(status_code=502, detail="Error communicating with DataForSEO")
+            logger.error(f"An error occurred while requesting {exc.request.url!r}.")
+            raise HTTPException(status_code=500, detail="DataForSEO connection failed")
         except httpx.HTTPStatusError as exc:
-            print(f"Error response {exc.response.status_code} while requesting {exc.request.url!r}.")
-            raise HTTPException(status_code=exc.response.status_code, detail="DataForSEO API Error")
+            logger.error(f"Error response {exc.response.status_code} while requesting {exc.request.url!r}.")
+            raise HTTPException(status_code=exc.response.status_code, detail="DataForSEO API error")

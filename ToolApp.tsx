@@ -191,6 +191,14 @@ const AppContent: React.FC = () => {
         }
     }, [supabase, isSetupRequired]);
 
+    // Redirect if no session (Router handles this, but safe to keep)
+    useEffect(() => {
+        if (!isLoading && !session) {
+            // Let the router handle redirection or show a simple message
+            // For now, we render null as correct behavior within ToolApp route
+        }
+    }, [session, isLoading]);
+
     const handleSetupSave = (url: string, key: string) => {
         try {
             localStorage.setItem('supabase_url', url);
@@ -388,13 +396,7 @@ const AppContent: React.FC = () => {
         );
     }
 
-    // Redirect if no session (Router handles this, but safe to keep)
-    useEffect(() => {
-        if (!isLoading && !session) {
-            // Let the router handle redirection or show a simple message
-            // For now, we render null as correct behavior within ToolApp route
-        }
-    }, [session, isLoading]);
+
 
     // WRAP EVERYTHING IN CONTEXT FROM HERE
     return (

@@ -26,7 +26,7 @@ const App: React.FC = () => {
                 <Routes>
                     <Route path="/" element={<LandingPage />} />
                     <Route path="/login" element={<AuthPage />} />
-                    <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/dashboard" element={<ToolApp />} />
 
                     {/* 
                       The ToolApp handles its own sub-routing (sort of) via state 'page'.

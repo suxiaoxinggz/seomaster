@@ -41,7 +41,10 @@ export const Dashboard: React.FC = () => {
         <div className="min-h-screen bg-slate-950 text-white font-sans">
             {/* Top Bar */}
             <header className="h-16 border-b border-white/5 bg-slate-900/50 flex items-center justify-between px-6">
-                <div className="font-bold text-xl tracking-tight">SEO Master <span className="text-slate-500 text-sm font-normal ml-2">Console</span></div>
+                <div className="flex items-center gap-3">
+                    <img src="/logo.jpg" alt="Brand" className="w-8 h-8 rounded-md object-cover" />
+                    <div className="font-bold text-xl tracking-tight">SEO Master <span className="text-slate-500 text-sm font-normal ml-2">Console</span></div>
+                </div>
                 <div className="flex items-center gap-4">
                     <div className="px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-indigo-400 text-sm font-medium flex items-center gap-2">
                         <CreditCard className="w-4 h-4" />

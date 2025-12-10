@@ -10,10 +10,8 @@ export const LandingPage: React.FC = () => {
             {/* Navbar */}
             <nav className="fixed w-full z-50 bg-slate-950/80 backdrop-blur-md border-b border-white/5">
                 <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
-                            <Zap className="w-5 h-5 text-white" />
-                        </div>
+                    <div className="flex items-center gap-3">
+                        <img src="/logo.jpg" alt="SEO Master Logo" className="w-10 h-10 rounded-lg object-cover" />
                         <span className="font-bold text-xl tracking-tight">SEO Master</span>
                     </div>
                     <div className="flex items-center gap-4">
@@ -163,8 +161,8 @@ const PricingCard = ({ name, price, features, popular, cta, action }: any) => (
         <button
             onClick={action}
             className={`w-full py-3 rounded-xl font-semibold transition-all ${popular
-                    ? 'bg-white text-slate-950 hover:bg-slate-200'
-                    : 'bg-white/10 text-white hover:bg-white/20'
+                ? 'bg-white text-slate-950 hover:bg-slate-200'
+                : 'bg-white/10 text-white hover:bg-white/20'
                 }`}
         >
             {cta}

@@ -38,8 +38,8 @@ export const AuthPage: React.FC = () => {
             <div className="hidden lg:flex w-1/2 bg-indigo-900/20 relative items-center justify-center p-12 overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/50 to-slate-950 z-0" />
                 <div className="relative z-10 max-w-lg">
-                    <div className="mb-8 w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-indigo-500/20">
-                        <Zap className="w-8 h-8 text-white" />
+                    <div className="mb-8 w-20 h-20 rounded-2xl flex items-center justify-center shadow-2xl shadow-indigo-500/20 overflow-hidden">
+                        <img src="/logo.jpg" alt="SEO Master" className="w-full h-full object-cover" />
                     </div>
                     <h2 className="text-4xl font-bold text-white mb-6">Welcome to SEO Master SaaS</h2>
                     <p className="text-indigo-200 text-lg leading-relaxed">

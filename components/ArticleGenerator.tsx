@@ -22,13 +22,13 @@ const formatSubProjectForContext = (subProject: KeywordSubProject): string => {
         context += `Keyword: ${l1.keyword}\n`;
         context += `Type: ${l1.type}\n`;
         context += `Page Type: ${l1.pageType}\n\n`;
-        
+
         l1.children.forEach(l2 => {
             context += `  --- Sub-core Keyword ---\n`;
             context += `  Keyword: ${l2.keyword}\n`;
             context += `  Type: ${l2.type}\n`;
-            if(l2.lsi.length > 0) {
-                 context += `  LSI: ${l2.lsi.map(l => l.text).join(', ')}\n\n`;
+            if (l2.lsi.length > 0) {
+                context += `  LSI: ${l2.lsi.map(l => l.text).join(', ')}\n\n`;
             }
         });
     });
@@ -38,13 +38,13 @@ const formatSubProjectForContext = (subProject: KeywordSubProject): string => {
 
 const ArticleGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPage }) => {
     const context = useContext(AppContext);
-    
+
     // Left panel state
     const [promptTemplate, setPromptTemplate] = useState(ARTICLE_PROMPT_TEMPLATE);
     const [keywordContext, setKeywordContext] = useState('');
     const [selectedModelId, setSelectedModelId] = useState(context?.defaultModelId || context?.models[0]?.id || '');
     const [enableWebSearch, setEnableWebSearch] = useState(false);
-    
+
     // Right panel state
     const [generatedArticle, setGeneratedArticle] = useState('');
     const [translatedArticle, setTranslatedArticle] = useState('');
@@ -61,7 +61,7 @@ const ArticleGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
     const [isLibraryModalOpen, setIsLibraryModalOpen] = useState(false);
     const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
     const [isContentModalOpen, setIsContentModalOpen] = useState(false);
-    
+
     // Save modal specific state
     const [articleTitle, setArticleTitle] = useState('');
     const [saveToParentProject, setSaveToParentProject] = useState('');
@@ -73,13 +73,14 @@ const ArticleGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
     const articleRef = useRef('');
 
 
-    if (!context) return null;
-    const { models, projects, keywordLibrary, fetchData, supabase, session, navigationPayload, setNavigationPayload } = context;
+    const { models = [], projects = [], keywordLibrary = [], fetchData, supabase, session, navigationPayload, setNavigationPayload } = context || {};
     const currentSelectedModel = models.find(m => m.id === selectedModelId);
 
     // Group models
     const presetModels = models.filter(m => m.type === ModelProvider.PRESET);
     const customModels = models.filter(m => m.type === ModelProvider.CUSTOM);
+
+    if (!context) return null;
 
     // Handle Incoming Navigation Payload
     useEffect(() => {
@@ -109,13 +110,13 @@ const ArticleGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
         setSavedArticleId(null); // Reset saved ID on new generation
         articleRef.current = ''; // Reset ref
         setTranslatedArticle('');
-        
+
         try {
             // Use Streaming Service
             await generateArticleStream(
-                keywordContext, 
-                currentSelectedModel, 
-                promptTemplate, 
+                keywordContext,
+                currentSelectedModel,
+                promptTemplate,
                 (chunk) => {
                     articleRef.current += chunk;
                     setGeneratedArticle(articleRef.current);
@@ -147,19 +148,19 @@ const ArticleGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
     // --- Workflow Action: Go to Image Studio ---
     const handleVisualize = () => {
         if (!generatedArticle || !setPage) return;
-        
+
         if (!savedArticleId) {
-            if(!confirm("文章尚未保存。如果直接跳转，生成的图片将无法自动回写到文章库。建议先保存文章。\n\n点击“确定”继续跳转，或点击“取消”留在此页保存。")) {
+            if (!confirm("文章尚未保存。如果直接跳转，生成的图片将无法自动回写到文章库。建议先保存文章。\n\n点击“确定”继续跳转，或点击“取消”留在此页保存。")) {
                 return;
             }
         }
 
         setNavigationPayload({
             type: 'create_images',
-            data: { 
+            data: {
                 content: generatedArticle,
                 // Critical: Pass source article ID so image processor knows where to write back to
-                sourceArticleId: savedArticleId || undefined, 
+                sourceArticleId: savedArticleId || undefined,
                 projectContext: saveToParentProject && saveToSubProject ? { parentId: saveToParentProject, subId: saveToSubProject } : undefined
             }
         });
@@ -175,7 +176,7 @@ const ArticleGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
         // Pre-fill title with the first line of the article, assuming it's a heading
         const titleLine = generatedArticle.split('\n').find(l => l.trim().length > 0) || '';
         if (!articleTitle) {
-             setArticleTitle(titleLine.replace(/^[#\s]+/, '').trim() || 'Untitled Article');
+            setArticleTitle(titleLine.replace(/^[#\s]+/, '').trim() || 'Untitled Article');
         }
         if (!saveToParentProject && projects.length > 0) {
             setSaveToParentProject(projects[0]?.id || '');
@@ -188,7 +189,7 @@ const ArticleGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
 
         let finalParentProjectId = saveToParentProject;
         let finalSubProjectId = saveToSubProject;
-        
+
         try {
             if (saveToParentProject === 'create_new') {
                 const newProject = {
@@ -203,7 +204,7 @@ const ArticleGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
                 if (projError) throw projError;
                 if (!newProjData) throw new Error("Failed to create parent project");
                 finalParentProjectId = newProjData.id;
-                
+
                 const newSubProject = {
                     id: `subproj-${Date.now()}`,
                     name: newSubProjectName.trim(),
@@ -251,7 +252,7 @@ const ArticleGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
 
             const { error: articleError } = await supabase.from('articles').insert({ ...newArticle, user_id: session.user.id } as any);
             if (articleError) throw articleError;
-            
+
             setSavedArticleId(articleId); // Save successful, store ID
             await fetchData();
             handleCloseSaveModal();
@@ -261,7 +262,7 @@ const ArticleGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
             toast.error(`Save failed: ${(err as Error).message}`);
         }
     };
-    
+
     const handleSelectSubProject = (subProject: KeywordSubProject) => {
         setKeywordContext(formatSubProjectForContext(subProject));
         setSaveToParentProject(subProject.parentProjectId);
@@ -304,8 +305,8 @@ const ArticleGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
                     />
                 </Card>
                 <Card>
-                     <div className="space-y-4">
-                       <Select label="Select Model" value={selectedModelId || ''} onChange={(e) => setSelectedModelId(e.target.value)}>
+                    <div className="space-y-4">
+                        <Select label="Select Model" value={selectedModelId || ''} onChange={(e) => setSelectedModelId(e.target.value)}>
                             {customModels.length > 0 && (
                                 <optgroup label="自定义模型 (Custom)">
                                     {customModels.map(m => <option key={m.id} value={m.id}>{m.nickname}</option>)}
@@ -314,8 +315,8 @@ const ArticleGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
                             <optgroup label="预设模型 (Presets)">
                                 {presetModels.map(m => <option key={m.id} value={m.id}>{m.nickname}</option>)}
                             </optgroup>
-                       </Select>
-                       <Toggle label="Enable Web Search" enabled={enableWebSearch} setEnabled={setEnableWebSearch} disabled={!currentSelectedModel?.supportsWebSearch} />
+                        </Select>
+                        <Toggle label="Enable Web Search" enabled={enableWebSearch} setEnabled={setEnableWebSearch} disabled={!currentSelectedModel?.supportsWebSearch} />
                     </div>
                 </Card>
                 <div className="mt-auto pt-4">
@@ -335,7 +336,7 @@ const ArticleGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
 
                 {(generatedArticle || isLoading) && (
                     <div className="flex-1 flex flex-col h-full animate-fade-in-up">
-                         <div className="flex justify-between items-center mb-4">
+                        <div className="flex justify-between items-center mb-4">
                             <div className="flex items-center gap-2">
                                 <h2 className="text-2xl font-bold text-white">生成内容</h2>
                                 <Button variant="secondary" size="sm" onClick={() => setIsContentModalOpen(true)}>
@@ -345,10 +346,10 @@ const ArticleGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
                             <div className="flex gap-2">
                                 <Button onClick={handleGenerate} isLoading={isLoading} size="sm" variant="secondary">重新生成</Button>
                                 {/* NEW: Visualize Button */}
-                                <Button 
-                                    onClick={handleVisualize} 
-                                    size="sm" 
-                                    variant={savedArticleId ? "primary" : "secondary"} 
+                                <Button
+                                    onClick={handleVisualize}
+                                    size="sm"
+                                    variant={savedArticleId ? "primary" : "secondary"}
                                     disabled={isLoading || !generatedArticle}
                                     title={savedArticleId ? "跳转到图片工作室" : "先保存文章以启用完整功能"}
                                 >
@@ -378,7 +379,7 @@ const ArticleGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
                     </div>
                 )}
             </div>
-            
+
             {/* Modals remain the same */}
             <Modal isOpen={isPromptModalOpen} onClose={() => setIsPromptModalOpen(false)} title="编辑文章提示">
                 <textarea value={editingPrompt} onChange={(e) => setEditingPrompt(e.target.value)} rows={15} className="w-full bg-gray-900 border border-gray-600 rounded-md p-2" />
@@ -386,7 +387,7 @@ const ArticleGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
                     <Button onClick={() => { setPromptTemplate(editingPrompt); setIsPromptModalOpen(false); }}>保存提示</Button>
                 </div>
             </Modal>
-            
+
             <Modal isOpen={isLibraryModalOpen} onClose={() => setIsLibraryModalOpen(false)} title="从库中提取关键词">
                 <div className="max-h-[60vh] overflow-y-auto">
                     {keywordLibrary.length > 0 ? (
@@ -412,11 +413,11 @@ const ArticleGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
                     />
                 </div>
             </Modal>
-            
-             <Modal isOpen={isSaveModalOpen} onClose={handleCloseSaveModal} title="保存文章">
+
+            <Modal isOpen={isSaveModalOpen} onClose={handleCloseSaveModal} title="保存文章">
                 <div className="space-y-4">
                     <Input label="文章标题" value={articleTitle} onChange={(e) => setArticleTitle(e.target.value)} autoFocus />
-                    
+
                     <Select label="父项目" value={saveToParentProject} onChange={(e) => { setSaveToParentProject(e.target.value); setSaveToSubProject(''); }}>
                         <option value="">选择父项目...</option>
                         {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}

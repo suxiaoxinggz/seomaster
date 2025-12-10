@@ -46,13 +46,13 @@ const ApiSettingsModal: React.FC<{
             <div className="bg-gray-900/50 p-3 rounded-lg border border-gray-700/50 hover:border-gray-600 transition-colors">
                 <div className="flex justify-between items-center mb-1.5">
                     <label className="block text-sm font-medium text-gray-300">{label}</label>
-                    <a 
-                        href={link} 
-                        target="_blank" 
-                        rel="noreferrer" 
+                    <a
+                        href={link}
+                        target="_blank"
+                        rel="noreferrer"
                         className="text-xs text-blue-400 hover:text-blue-300 hover:underline flex items-center transition-colors"
                     >
-                        Get API Key <ExternalLinkIcon className="w-3 h-3 ml-1"/>
+                        Get API Key <ExternalLinkIcon className="w-3 h-3 ml-1" />
                     </a>
                 </div>
                 <div className="relative">
@@ -68,7 +68,7 @@ const ApiSettingsModal: React.FC<{
                         onClick={() => toggleVisibility(key)}
                         className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 p-1"
                     >
-                        {isVisible ? <EyeOffIcon className="w-4 h-4"/> : <EyeIcon className="w-4 h-4"/>}
+                        {isVisible ? <EyeOffIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
                     </button>
                 </div>
             </div>
@@ -102,7 +102,7 @@ const ApiSettingsModal: React.FC<{
                                 Pollinations.AI (Flux/SD) is enabled by default and requires no API key.
                             </div>
                         </div>
-                        
+
                         <div>
                             <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">High Performance / Free Tier</h4>
                             <div className="space-y-3">
@@ -126,7 +126,7 @@ const ApiSettingsModal: React.FC<{
                                 {renderField("Replicate API Token", ImageSource.REPLICATE, "https://replicate.com/account/api-tokens", "r8_...")}
                                 {renderField("Hugging Face Access Token", ImageSource.HUGGINGFACE, "https://huggingface.co/settings/tokens", "hf_...")}
                                 {renderField("OpenRouter API Key", ImageSource.OPENROUTER, "https://openrouter.ai/keys", "sk-or-...")}
-                                
+
                                 <div className="bg-gray-800/30 p-3 rounded-lg border border-gray-700/50">
                                     <h5 className="text-sm font-semibold text-gray-300 mb-2">Cloudflare Workers AI</h5>
                                     <div className="space-y-3">
@@ -174,15 +174,15 @@ const ImageCard: React.FC<{
                 aria-label={`Select image ${image.alt_description}`}
             />
         </div>
-        <div 
-          className="w-full h-full cursor-pointer"
-          onClick={() => onViewImage(image)}
+        <div
+            className="w-full h-full cursor-pointer"
+            onClick={() => onViewImage(image)}
         >
             <div className={`absolute inset-0 bg-blue-600/20 transition-opacity ${isSelected ? 'opacity-100' : 'opacity-0'}`}></div>
             <div className={`absolute inset-0 border-2 transition-all ${isSelected ? 'border-blue-500' : 'border-transparent'}`}></div>
-            
-            <img src={image.url_regular} alt={image.alt_description} className="w-full h-full object-cover" loading="lazy"/>
-            
+
+            <img src={image.url_regular} alt={image.alt_description} className="w-full h-full object-cover" loading="lazy" />
+
             <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/90 via-black/60 to-transparent text-xs opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                 <p className="font-semibold text-white truncate">{image.source_platform}</p>
                 <p className="text-gray-300 truncate">{image.author_name}</p>
@@ -201,9 +201,9 @@ const ImageControls: React.FC<{
     // Determine which inputs to show based on source
     const showNegative = [ImageSource.KOLARS, ImageSource.POLLINATIONS, ImageSource.STABILITY, ImageSource.REPLICATE, ImageSource.HUGGINGFACE, ImageSource.CLOUDFLARE, ImageSource.NEBIUS].includes(source);
     const showCount = [ImageSource.KOLARS, ImageSource.PIXABAY, ImageSource.UNSPLASH, ImageSource.POLLINATIONS, ImageSource.OPENROUTER, ImageSource.NEBIUS].includes(source);
-    
+
     // Model Fetching State
-    const [fetchedModels, setFetchedModels] = useState<{id: string, name?: string}[]>([]);
+    const [fetchedModels, setFetchedModels] = useState<{ id: string, name?: string }[]>([]);
     const [isFetchingModels, setIsFetchingModels] = useState(false);
 
     const handleFetchModels = async () => {
@@ -228,7 +228,7 @@ const ImageControls: React.FC<{
     return (
         <Card className="space-y-4">
             <h3 className="text-lg font-bold text-white border-b border-gray-700 pb-2">Generation Settings</h3>
-            
+
             <Select label="Provider" value={source} onChange={(e) => { setSource(e.target.value as ImageSource); setFetchedModels([]); }}>
                 <optgroup label="AI Generation (High Quality)">
                     <option value={ImageSource.NEBIUS}>Flux.1 (Nebius AI - Free/Cheap)</option>
@@ -255,7 +255,7 @@ const ImageControls: React.FC<{
                     min="1"
                     max={source === ImageSource.KOLARS || source === ImageSource.NEBIUS ? 4 : 20}
                     value={params.per_page}
-                    onChange={(e) => setParams({ ...params, per_page: parseInt(e.target.value, 10)})}
+                    onChange={(e) => setParams({ ...params, per_page: parseInt(e.target.value, 10) })}
                 />
             )}
 
@@ -267,35 +267,35 @@ const ImageControls: React.FC<{
                     onChange={(e) => setParams({ ...params, negative_prompt: e.target.value })}
                 />
             )}
-            
+
             {/* Dynamic Controls based on Source */}
             <div className="pt-2 space-y-3">
-                
+
                 {source === ImageSource.DALLE3 && (
-                     <div className="grid grid-cols-2 gap-2">
-                        <Select label="Size" value={params.size} onChange={e => setParams({...params, size: e.target.value})}>
+                    <div className="grid grid-cols-2 gap-2">
+                        <Select label="Size" value={params.size} onChange={e => setParams({ ...params, size: e.target.value })}>
                             <option value="1024x1024">Square (1024x1024)</option>
                             <option value="1024x1792">Portrait (1024x1792)</option>
                             <option value="1792x1024">Landscape (1792x1024)</option>
                         </Select>
-                        <Select label="Style" value={params.style} onChange={e => setParams({...params, style: e.target.value})}>
+                        <Select label="Style" value={params.style} onChange={e => setParams({ ...params, style: e.target.value })}>
                             <option value="vivid">Vivid</option>
                             <option value="natural">Natural</option>
                         </Select>
-                        <Select label="Quality" value={params.quality} onChange={e => setParams({...params, quality: e.target.value})}>
+                        <Select label="Quality" value={params.quality} onChange={e => setParams({ ...params, quality: e.target.value })}>
                             <option value="standard">Standard</option>
                             <option value="hd">HD</option>
                         </Select>
-                     </div>
+                    </div>
                 )}
 
                 {source === ImageSource.ZHIPU_COGVIEW && (
-                     <div className="grid grid-cols-2 gap-2">
-                        <Select label="Model" value={params.model} onChange={e => setParams({...params, model: e.target.value})}>
+                    <div className="grid grid-cols-2 gap-2">
+                        <Select label="Model" value={params.model} onChange={e => setParams({ ...params, model: e.target.value })}>
                             <option value="cogview-3-flash">CogView-3 Flash (Fast)</option>
                             <option value="cogview-3-plus">CogView-3 Plus</option>
                         </Select>
-                        <Select label="Size" value={params.size} onChange={e => setParams({...params, size: e.target.value})}>
+                        <Select label="Size" value={params.size} onChange={e => setParams({ ...params, size: e.target.value })}>
                             <option value="1024x1024">1:1 (1024x1024)</option>
                             <option value="768x1344">9:16 (768x1344)</option>
                             <option value="1344x768">16:9 (1344x768)</option>
@@ -304,34 +304,34 @@ const ImageControls: React.FC<{
                             <option value="720x1440">1:2 (720x1440)</option>
                             <option value="1440x720">2:1 (1440x720)</option>
                         </Select>
-                     </div>
+                    </div>
                 )}
 
                 {source === ImageSource.NEBIUS && (
                     <div className="space-y-3">
-                        <Select label="Model" value={params.model} onChange={(e) => setParams({...params, model: e.target.value})}>
+                        <Select label="Model" value={params.model} onChange={(e) => setParams({ ...params, model: e.target.value })}>
                             <option value="black-forest-labs/flux-1-schnell">Flux 1.0 Schnell (Fast & Cheap)</option>
                             <option value="black-forest-labs/flux-1-dev">Flux 1.0 Dev (High Quality)</option>
                             <option value="stability-ai/sdxl">SDXL (Stable Diffusion XL)</option>
                         </Select>
                         <div className="grid grid-cols-2 gap-2">
-                            <Input label="Width" type="number" step="64" min="256" max="2048" value={params.width} onChange={e => setParams({...params, width: parseInt(e.target.value)})} />
-                            <Input label="Height" type="number" step="64" min="256" max="2048" value={params.height} onChange={e => setParams({...params, height: parseInt(e.target.value)})} />
+                            <Input label="Width" type="number" step="64" min="256" max="2048" value={params.width} onChange={e => setParams({ ...params, width: parseInt(e.target.value) })} />
+                            <Input label="Height" type="number" step="64" min="256" max="2048" value={params.height} onChange={e => setParams({ ...params, height: parseInt(e.target.value) })} />
                         </div>
-                        <Input label="Steps (4-50)" type="number" min="1" max="50" value={params.num_inference_steps} onChange={e => setParams({...params, num_inference_steps: parseInt(e.target.value)})} />
+                        <Input label="Steps (4-50)" type="number" min="1" max="50" value={params.num_inference_steps} onChange={e => setParams({ ...params, num_inference_steps: parseInt(e.target.value) })} />
                     </div>
                 )}
 
                 {source === ImageSource.STABILITY && (
                     <div className="grid grid-cols-2 gap-2">
-                        <Select label="Aspect Ratio" value={params.aspect_ratio} onChange={e => setParams({...params, aspect_ratio: e.target.value})}>
+                        <Select label="Aspect Ratio" value={params.aspect_ratio} onChange={e => setParams({ ...params, aspect_ratio: e.target.value })}>
                             <option value="1:1">1:1 Square</option>
                             <option value="16:9">16:9 Cinema</option>
                             <option value="9:16">9:16 Mobile</option>
                             <option value="3:2">3:2 Landscape</option>
                             <option value="2:3">2:3 Portrait</option>
                         </Select>
-                         <Select label="Output Format" value={params.output_format} onChange={e => setParams({...params, output_format: e.target.value})}>
+                        <Select label="Output Format" value={params.output_format} onChange={e => setParams({ ...params, output_format: e.target.value })}>
                             <option value="png">PNG</option>
                             <option value="jpeg">JPEG</option>
                         </Select>
@@ -339,30 +339,30 @@ const ImageControls: React.FC<{
                 )}
 
                 {source === ImageSource.POLLINATIONS && (
-                     <div className="grid grid-cols-2 gap-2">
-                        <Select label="Model" value={params.model} onChange={(e) => setParams({...params, model: e.target.value})}>
+                    <div className="grid grid-cols-2 gap-2">
+                        <Select label="Model" value={params.model} onChange={(e) => setParams({ ...params, model: e.target.value })}>
                             <option value="flux">Flux.1 (Schnell)</option>
                             <option value="flux-realism">Flux Realism</option>
                             <option value="turbo">SDXL Turbo</option>
                         </Select>
-                         <div className="col-span-2 grid grid-cols-2 gap-2">
-                            <Input label="Width" type="number" min="512" max="2048" value={params.width} onChange={e => setParams({...params, width: parseInt(e.target.value)})} />
-                            <Input label="Height" type="number" min="512" max="2048" value={params.height} onChange={e => setParams({...params, height: parseInt(e.target.value)})} />
-                         </div>
-                         <Toggle label="Enhance" enabled={params.enhance} setEnabled={(e) => setParams({...params, enhance: e})} />
-                         <Toggle label="Private" enabled={params.private} setEnabled={(e) => setParams({...params, private: e})} />
-                     </div>
+                        <div className="col-span-2 grid grid-cols-2 gap-2">
+                            <Input label="Width" type="number" min="512" max="2048" value={params.width} onChange={e => setParams({ ...params, width: parseInt(e.target.value) })} />
+                            <Input label="Height" type="number" min="512" max="2048" value={params.height} onChange={e => setParams({ ...params, height: parseInt(e.target.value) })} />
+                        </div>
+                        <Toggle label="Enhance" enabled={params.enhance} setEnabled={(e) => setParams({ ...params, enhance: e })} />
+                        <Toggle label="Private" enabled={params.private} setEnabled={(e) => setParams({ ...params, private: e })} />
+                    </div>
                 )}
-                
-                 {source === ImageSource.KOLARS && (
+
+                {source === ImageSource.KOLARS && (
                     <div className="grid grid-cols-2 gap-2">
-                        <Select label="Size" value={params.image_size} onChange={(e) => setParams({...params, image_size: e.target.value})}>
+                        <Select label="Size" value={params.image_size} onChange={(e) => setParams({ ...params, image_size: e.target.value })}>
                             <option value="1024x1024">1:1</option>
                             <option value="768x1024">3:4</option>
                             <option value="1024x768">4:3</option>
                         </Select>
-                         <Input label="Steps (20-50)" type="number" min="20" max="50" value={params.num_inference_steps} onChange={e => setParams({...params, num_inference_steps: parseInt(e.target.value)})} />
-                         <Toggle label="Enhance" enabled={params.enhance} setEnabled={(e) => setParams({...params, enhance: e})} />
+                        <Input label="Steps (20-50)" type="number" min="20" max="50" value={params.num_inference_steps} onChange={e => setParams({ ...params, num_inference_steps: parseInt(e.target.value) })} />
+                        <Toggle label="Enhance" enabled={params.enhance} setEnabled={(e) => setParams({ ...params, enhance: e })} />
                     </div>
                 )}
 
@@ -371,10 +371,10 @@ const ImageControls: React.FC<{
                     <div className="space-y-3">
                         {isFetchable && (
                             <div className="flex justify-end -mb-1">
-                                <Button 
-                                    size="sm" 
-                                    variant="secondary" 
-                                    onClick={handleFetchModels} 
+                                <Button
+                                    size="sm"
+                                    variant="secondary"
+                                    onClick={handleFetchModels}
                                     isLoading={isFetchingModels}
                                     className="text-xs py-1"
                                 >
@@ -383,33 +383,33 @@ const ImageControls: React.FC<{
                                 </Button>
                             </div>
                         )}
-                        
+
                         {fetchedModels.length > 0 ? (
-                            <Select 
-                                label="Model ID" 
-                                value={params.model} 
-                                onChange={e => setParams({...params, model: e.target.value})}
+                            <Select
+                                label="Model ID"
+                                value={params.model}
+                                onChange={e => setParams({ ...params, model: e.target.value })}
                             >
                                 {fetchedModels.map(m => <option key={m.id} value={m.id}>{m.name || m.id}</option>)}
                             </Select>
                         ) : (
-                            <Input 
-                                label="Model ID" 
-                                placeholder={source === ImageSource.CLOUDFLARE ? "@cf/..." : "model-id"} 
-                                value={params.model} 
-                                onChange={e => setParams({...params, model: e.target.value})} 
+                            <Input
+                                label="Model ID"
+                                placeholder={source === ImageSource.CLOUDFLARE ? "@cf/..." : "model-id"}
+                                value={params.model}
+                                onChange={e => setParams({ ...params, model: e.target.value })}
                             />
                         )}
 
                         {source !== ImageSource.CLOUDFLARE && (
                             <div className="grid grid-cols-2 gap-2">
-                                <Input label="Width" type="number" value={params.width} onChange={e => setParams({...params, width: parseInt(e.target.value)})} />
-                                <Input label="Height" type="number" value={params.height} onChange={e => setParams({...params, height: parseInt(e.target.value)})} />
+                                <Input label="Width" type="number" value={params.width} onChange={e => setParams({ ...params, width: parseInt(e.target.value) })} />
+                                <Input label="Height" type="number" value={params.height} onChange={e => setParams({ ...params, height: parseInt(e.target.value) })} />
                             </div>
                         )}
-                        
+
                         {source === ImageSource.REPLICATE && (
-                             <Select label="Aspect Ratio (If supported)" value={params.aspect_ratio || "1:1"} onChange={e => setParams({...params, aspect_ratio: e.target.value})}>
+                            <Select label="Aspect Ratio (If supported)" value={params.aspect_ratio || "1:1"} onChange={e => setParams({ ...params, aspect_ratio: e.target.value })}>
                                 <option value="1:1">1:1</option>
                                 <option value="16:9">16:9</option>
                                 <option value="9:16">9:16</option>
@@ -418,15 +418,15 @@ const ImageControls: React.FC<{
 
                         {source === ImageSource.HUGGINGFACE && (
                             <div className="grid grid-cols-2 gap-2">
-                                <Input label="Steps" type="number" value={params.num_inference_steps} onChange={e => setParams({...params, num_inference_steps: parseInt(e.target.value)})} />
-                                <Input label="Guidance" type="number" value={params.guidance_scale} onChange={e => setParams({...params, guidance_scale: parseFloat(e.target.value)})} />
+                                <Input label="Steps" type="number" value={params.num_inference_steps} onChange={e => setParams({ ...params, num_inference_steps: parseInt(e.target.value) })} />
+                                <Input label="Guidance" type="number" value={params.guidance_scale} onChange={e => setParams({ ...params, guidance_scale: parseFloat(e.target.value) })} />
                             </div>
                         )}
 
                         {source === ImageSource.CLOUDFLARE && (
-                             <div className="grid grid-cols-2 gap-2">
-                                <Input label="Steps (1-50)" type="number" min="1" max="50" value={params.num_steps} onChange={e => setParams({...params, num_steps: parseInt(e.target.value)})} />
-                                <Input label="Guidance" type="number" value={params.guidance} onChange={e => setParams({...params, guidance: parseFloat(e.target.value)})} />
+                            <div className="grid grid-cols-2 gap-2">
+                                <Input label="Steps (1-50)" type="number" min="1" max="50" value={params.num_steps} onChange={e => setParams({ ...params, num_steps: parseInt(e.target.value) })} />
+                                <Input label="Guidance" type="number" value={params.guidance} onChange={e => setParams({ ...params, guidance: parseFloat(e.target.value) })} />
                             </div>
                         )}
                     </div>
@@ -457,7 +457,7 @@ const ImageTextProcessor: React.FC = () => {
         'cloudflare_token': '',
     });
     const [isApiModalOpen, setIsApiModalOpen] = useState(false);
-    
+
     // --- State Management ---
     const [source, setSource] = useState<ImageSource>(ImageSource.NEBIUS);
     const [params, setParams] = useState<any>({});
@@ -476,11 +476,11 @@ const ImageTextProcessor: React.FC = () => {
     const [insertionStrategy, setInsertionStrategy] = useState<'h2_before' | 'p_before' | 'end_of_article'>('h2_before');
     const [finalPreview, setFinalPreview] = useState('');
     const [finalMarkdown, setFinalMarkdown] = useState('');
-    
+
     const [viewingImage, setViewingImage] = useState<ImageObject | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-    
+
     const [isDirty, setIsDirty] = useState(true);
 
     // Save Images Modal State
@@ -493,31 +493,30 @@ const ImageTextProcessor: React.FC = () => {
     const [imageNameInputs, setImageNameInputs] = useState<Record<string, string>>({});
 
     // Context tracking for navigation
-    const [sourceArticleId, setSourceArticleId] = useState<string|undefined>(undefined);
+    const [sourceArticleId, setSourceArticleId] = useState<string | undefined>(undefined);
 
 
-    if (!context) return null;
-    const { articles, projects, keywordLibrary, fetchData, supabase, session } = context;
+    const { articles = [], projects = [], keywordLibrary = [], fetchData, supabase, session } = context || {};
 
     // --- GENERATE FUNCTION WRAPPER ---
     // Defined before useEffect so it can be called from within
     const executeGeneration = async (queryOverride?: string) => {
         const queryToUse = queryOverride || searchTerm;
         if (!queryToUse.trim()) { setImages([]); return; };
-        
+
         setIsLoading(true);
         setError(null);
         setSelectedImages({});
-        
+
         try {
             let result: ImageObject[] = [];
             const currentParams = { ...params, query: queryToUse, prompt: queryToUse };
-            
+
             if (Object.keys(currentParams).length <= 2) {
-                 // basic fallback if params state wasn't ready
+                // basic fallback if params state wasn't ready
             }
 
-            switch(source) {
+            switch (source) {
                 case ImageSource.PIXABAY:
                     if (!apiKeys[ImageSource.PIXABAY]) throw new Error(`Pixabay API Key missing.`);
                     result = await fetchPixabayImages(currentParams, apiKeys[ImageSource.PIXABAY]);
@@ -570,6 +569,8 @@ const ImageTextProcessor: React.FC = () => {
         }
     };
 
+    if (!context) return null;
+
     // --- NEW: Handle Navigation Payload ---
     useEffect(() => {
         if (navigationPayload && navigationPayload.type === 'create_images') {
@@ -577,7 +578,7 @@ const ImageTextProcessor: React.FC = () => {
                 setArticleContent(navigationPayload.data.content);
                 setIsDirty(true);
                 toast.success("文章内容已导入", { id: 'content-imported' });
-                
+
                 // Track source ID
                 if (navigationPayload.data.sourceArticleId) {
                     setSourceArticleId(navigationPayload.data.sourceArticleId);
@@ -588,15 +589,15 @@ const ImageTextProcessor: React.FC = () => {
                     setSaveImagesParentProjectId(navigationPayload.data.projectContext.parentId);
                     setSaveImagesSubProjectId(navigationPayload.data.projectContext.subId);
                 }
-                
+
                 // Attempt to extract a better prompt
                 const lines = navigationPayload.data.content.split('\n');
-                const titleLine = lines.find((l: string) => l.startsWith('# ')) || 
-                                  lines.find((l: string) => l.startsWith('## ')) || 
-                                  lines.find((l: string) => l.trim().length > 0) || '';
-                                  
+                const titleLine = lines.find((l: string) => l.startsWith('# ')) ||
+                    lines.find((l: string) => l.startsWith('## ')) ||
+                    lines.find((l: string) => l.trim().length > 0) || '';
+
                 const cleanPrompt = titleLine.replace(/[#*]/g, '').trim().substring(0, 100);
-                
+
                 if (cleanPrompt) {
                     setSearchTerm(cleanPrompt);
                     setTimeout(() => {
@@ -606,7 +607,7 @@ const ImageTextProcessor: React.FC = () => {
             }
             setNavigationPayload(null);
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [navigationPayload, setNavigationPayload]);
 
 
@@ -615,50 +616,50 @@ const ImageTextProcessor: React.FC = () => {
         const commonDefaults = { per_page: 4, negative_prompt: '' }; // Reduced default count for gen AI
         let sourceDefaults: any;
 
-        switch(source) {
+        switch (source) {
             case ImageSource.PIXABAY:
                 sourceDefaults = { per_page: 12, order: 'popular', orientation: 'horizontal', safesearch: true, editors_choice: false };
                 break;
             case ImageSource.UNSPLASH:
-                 sourceDefaults = { per_page: 12, orientation: 'landscape' };
-                 break;
+                sourceDefaults = { per_page: 12, orientation: 'landscape' };
+                break;
             case ImageSource.KOLARS:
                 sourceDefaults = { model: 'Kwai-Kolors/Kolors', image_size: '1024x1024', num_inference_steps: 30, guidance_scale: 7.5, enhance: false, nologo: true, transparent: false, private: false };
                 break;
             case ImageSource.POLLINATIONS:
-                 sourceDefaults = { model: 'flux', width: 1024, height: 1024, nologo: true, enhance: false, transparent: false, private: false };
-                 break;
+                sourceDefaults = { model: 'flux', width: 1024, height: 1024, nologo: true, enhance: false, transparent: false, private: false };
+                break;
             case ImageSource.NEBIUS:
-                 sourceDefaults = { model: 'black-forest-labs/flux-1-schnell', width: 1024, height: 1024, num_inference_steps: 4 };
-                 break;
+                sourceDefaults = { model: 'black-forest-labs/flux-1-schnell', width: 1024, height: 1024, num_inference_steps: 4 };
+                break;
             case ImageSource.ZHIPU_COGVIEW:
-                 sourceDefaults = { model: 'cogview-3-flash', size: '1024x1024' };
-                 break;
+                sourceDefaults = { model: 'cogview-3-flash', size: '1024x1024' };
+                break;
             case ImageSource.DALLE3:
-                 sourceDefaults = { per_page: 1, size: '1024x1024', quality: 'standard', style: 'vivid' };
-                 break;
+                sourceDefaults = { per_page: 1, size: '1024x1024', quality: 'standard', style: 'vivid' };
+                break;
             case ImageSource.STABILITY:
-                 sourceDefaults = { per_page: 1, model: 'sd3.5-large', aspect_ratio: '1:1', output_format: 'jpeg' };
-                 break;
+                sourceDefaults = { per_page: 1, model: 'sd3.5-large', aspect_ratio: '1:1', output_format: 'jpeg' };
+                break;
             case ImageSource.REPLICATE:
-                 sourceDefaults = { per_page: 1, model: 'black-forest-labs/flux-schnell', width: 1024, height: 1024, aspect_ratio: '1:1' };
-                 break;
+                sourceDefaults = { per_page: 1, model: 'black-forest-labs/flux-schnell', width: 1024, height: 1024, aspect_ratio: '1:1' };
+                break;
             case ImageSource.HUGGINGFACE:
-                 sourceDefaults = { per_page: 1, model: 'black-forest-labs/FLUX.1-dev', width: 1024, height: 1024, num_inference_steps: 25, guidance_scale: 7.5 };
-                 break;
+                sourceDefaults = { per_page: 1, model: 'black-forest-labs/FLUX.1-dev', width: 1024, height: 1024, num_inference_steps: 25, guidance_scale: 7.5 };
+                break;
             case ImageSource.CLOUDFLARE:
-                 sourceDefaults = { model: '@cf/stabilityai/stable-diffusion-xl-base-1.0', num_steps: 20, guidance: 7.5 };
-                 break;
+                sourceDefaults = { model: '@cf/stabilityai/stable-diffusion-xl-base-1.0', num_steps: 20, guidance: 7.5 };
+                break;
             case ImageSource.OPENROUTER:
-                 sourceDefaults = { per_page: 1, model: 'stabilityai/stable-diffusion-xl-base-1.0', width: 1024, height: 1024 };
-                 break;
+                sourceDefaults = { per_page: 1, model: 'stabilityai/stable-diffusion-xl-base-1.0', width: 1024, height: 1024 };
+                break;
             default:
                 sourceDefaults = {};
         }
         setParams({ ...commonDefaults, ...sourceDefaults });
-        setError(null); 
+        setError(null);
         setIsDirty(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [source]);
 
 
@@ -675,17 +676,17 @@ const ImageTextProcessor: React.FC = () => {
     };
 
     const handleToggleSelectImage = (id: string) => {
-        setSelectedImages(prev => ({...prev, [id]: !prev[id]}));
+        setSelectedImages(prev => ({ ...prev, [id]: !prev[id] }));
         setIsDirty(true);
     };
-    
+
     // --- Markdown & Preview Logic ---
     const generateMarkdownWithImages = useCallback(() => {
         const selected = images.filter(img => selectedImages[img.id]);
         const imagePlaceholder = (index: number, img: ImageObject) => `\n\n![${img.alt_description}](${img.url_regular})\n*${img.alt_description}*\n\n`;
-        
+
         let tempContent = articleContent;
-        
+
         if (selected.length > 0) {
             switch (insertionStrategy) {
                 case 'h2_before': {
@@ -709,9 +710,9 @@ const ImageTextProcessor: React.FC = () => {
                 case 'p_before': {
                     // Simple replacement for p_before is hard in raw markdown without breaking structure
                     // fallback to end of article for safety or implement complex logic
-                     const insertions = selected.map((img, index) => imagePlaceholder(index, img));
-                     tempContent += insertions.join('');
-                     break;
+                    const insertions = selected.map((img, index) => imagePlaceholder(index, img));
+                    tempContent += insertions.join('');
+                    break;
                 }
             }
         }
@@ -730,19 +731,19 @@ const ImageTextProcessor: React.FC = () => {
             setIsDirty(false);
         }
     }, [isDirty, generateMarkdownWithImages, getPreviewHtml]);
-    
+
     // --- Saving Logic (Persistence) ---
 
     // Utility: Convert ephemeral selected images to Base64 if needed
     const prepareImagesForSave = async (imagesToSave: ImageObject[]): Promise<ImageObject[]> => {
         setIsProcessing(true);
         const processedImages: ImageObject[] = [];
-        
+
         for (const img of imagesToSave) {
             // Check if URL is ephemeral (blob:, or specific domains) or just to be safe, convert all generation results.
             // Stock photos (pixabay/unsplash) are persistent public URLs, we keep them as is.
             const isStock = img.source_platform === ImageSource.PIXABAY || img.source_platform === ImageSource.UNSPLASH;
-            
+
             if (isStock) {
                 processedImages.push(img);
             } else {
@@ -777,25 +778,25 @@ const ImageTextProcessor: React.FC = () => {
         setIsSaving(true);
         try {
             const persistedImages = await prepareImagesForSave(selected);
-            
+
             // Handle Project Creation if needed
             let parentId = saveImagesParentProjectId;
             if (saveImagesParentProjectId === 'create_new') {
-                 // Explicitly cast insert payload and result to handle TS errors
-                 const sb = supabase as any;
-                 const { data: rawData, error } = await sb.from('projects').insert({
+                // Explicitly cast insert payload and result to handle TS errors
+                const sb = supabase as any;
+                const { data: rawData, error } = await sb.from('projects').insert({
                     id: `proj-${Date.now()}`,
                     name: newSaveImagesParentProjectName,
                     user_id: session.user.id,
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString(),
-                 }).select().single();
-                 
-                 const data = rawData as any;
-                 
-                 if (error) throw error;
-                 if (!data) throw new Error("Failed to create parent project");
-                 parentId = data.id;
+                }).select().single();
+
+                const data = rawData as any;
+
+                if (error) throw error;
+                if (!data) throw new Error("Failed to create parent project");
+                parentId = data.id;
             }
 
             const newSet: Omit<SavedImageSet, 'user_id'> = {
@@ -829,7 +830,7 @@ const ImageTextProcessor: React.FC = () => {
             toast.error("No source article to update.");
             return;
         }
-        
+
         if (!confirm("This will overwrite the article content with the new layout including images. Continue?")) {
             return;
         }
@@ -840,14 +841,14 @@ const ImageTextProcessor: React.FC = () => {
             const selected = images.filter(img => selectedImages[img.id]);
             // If we are updating an article, we might not strictly need to save an "Image Set", 
             // but we definitely need the images to be persistent in the article body (Base64).
-            
+
             // We need to regenerate the markdown but with Base64 URLs this time.
             const persistedImages = await prepareImagesForSave(selected);
-            
+
             // Re-run insertion logic with persisted images
             // We need to map the original IDs to the new Base64 URLs
             const idToUrlMap = new Map(persistedImages.map(img => [img.id, img.url_regular]));
-            
+
             const imagePlaceholder = (img: ImageObject) => {
                 const url = idToUrlMap.get(img.id) || img.url_regular;
                 return `\n\n![${img.alt_description}](${url})\n*${img.alt_description}*\n\n`;
@@ -855,7 +856,7 @@ const ImageTextProcessor: React.FC = () => {
 
             let finalContent = articleContent;
             if (selected.length > 0) {
-                 switch (insertionStrategy) {
+                switch (insertionStrategy) {
                     case 'h2_before': {
                         let h2Count = 0;
                         finalContent = finalContent.replace(/^(## .*$)/gm, (match) => {
@@ -899,20 +900,20 @@ const ImageTextProcessor: React.FC = () => {
 
     const selectedImageObjects = useMemo(() => images.filter(img => selectedImages[img.id]), [images, selectedImages]);
     const numSelected = selectedImageObjects.length;
-    
+
     return (
         <div className="flex h-full font-sans text-gray-100">
-             <ApiSettingsModal isOpen={isApiModalOpen} onClose={() => setIsApiModalOpen(false)} apiKeys={apiKeys} onSave={setApiKeys} />
-             <Modal isOpen={isLibraryModalOpen} onClose={() => setIsLibraryModalOpen(false)} title="Import from Library">
-                 <div className="p-4 space-y-2 max-h-[60vh] overflow-y-auto">
-                     {articles.map(article => (
-                         <div key={article.id} onClick={() => handleSelectArticle(article)} className="p-3 bg-gray-800 hover:bg-gray-700 cursor-pointer rounded border border-gray-700">
-                             <h4 className="font-bold">{article.title}</h4>
-                             <p className="text-xs text-gray-400">{new Date(article.createdAt).toLocaleDateString()}</p>
-                         </div>
-                     ))}
-                 </div>
-             </Modal>
+            <ApiSettingsModal isOpen={isApiModalOpen} onClose={() => setIsApiModalOpen(false)} apiKeys={apiKeys} onSave={setApiKeys} />
+            <Modal isOpen={isLibraryModalOpen} onClose={() => setIsLibraryModalOpen(false)} title="Import from Library">
+                <div className="p-4 space-y-2 max-h-[60vh] overflow-y-auto">
+                    {articles.map(article => (
+                        <div key={article.id} onClick={() => handleSelectArticle(article)} className="p-3 bg-gray-800 hover:bg-gray-700 cursor-pointer rounded border border-gray-700">
+                            <h4 className="font-bold">{article.title}</h4>
+                            <p className="text-xs text-gray-400">{new Date(article.createdAt).toLocaleDateString()}</p>
+                        </div>
+                    ))}
+                </div>
+            </Modal>
 
             {/* Left Panel */}
             <div className="w-1/3 min-w-[400px] max-w-[500px] bg-[#0f1117] border-r border-white/5 p-6 flex flex-col gap-6 overflow-y-auto">
@@ -923,7 +924,7 @@ const ImageTextProcessor: React.FC = () => {
                     </div>
                     <textarea
                         value={articleContent}
-                        onChange={e => {setArticleContent(e.target.value); setIsDirty(true);}}
+                        onChange={e => { setArticleContent(e.target.value); setIsDirty(true); }}
                         rows={6}
                         className="w-full bg-gray-900/50 border border-white/10 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500/50 outline-none"
                         placeholder="Paste your article markdown here..."
@@ -937,9 +938,9 @@ const ImageTextProcessor: React.FC = () => {
                             <SettingsIcon className="w-5 h-5" />
                         </Button>
                     </div>
-                    
+
                     <div className="space-y-4">
-                         <div className="relative">
+                        <div className="relative">
                             <Input
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -953,17 +954,17 @@ const ImageTextProcessor: React.FC = () => {
                         </div>
                     </div>
                 </Card>
-                
-                <ImageControls source={source} setSource={setSource} params={params} setParams={setParams} apiKeys={apiKeys}/>
+
+                <ImageControls source={source} setSource={setSource} params={params} setParams={setParams} apiKeys={apiKeys} />
             </div>
 
             {/* Right Panel */}
             <div className="flex-1 p-6 flex flex-col gap-6 min-w-0 overflow-y-auto bg-gray-900/30">
-                 {error && <div className="text-red-400 bg-red-900/20 border border-red-900/50 p-4 rounded-lg">{error}</div>}
-                 
-                 {/* Gallery Grid */}
-                 <div className="min-h-[200px]">
-                     {isLoading ? (
+                {error && <div className="text-red-400 bg-red-900/20 border border-red-900/50 p-4 rounded-lg">{error}</div>}
+
+                {/* Gallery Grid */}
+                <div className="min-h-[200px]">
+                    {isLoading ? (
                         <div className="flex flex-col items-center justify-center h-48 text-gray-500">
                             <Spinner size="lg" />
                             <p className="mt-4 text-sm font-medium">Creating visual assets...</p>
@@ -972,7 +973,7 @@ const ImageTextProcessor: React.FC = () => {
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                             {images.map(img => (
                                 <div key={img.id} className="aspect-square">
-                                    <ImageCard image={img} isSelected={!!selectedImages[img.id]} onToggleSelect={handleToggleSelectImage} onViewImage={setViewingImage}/>
+                                    <ImageCard image={img} isSelected={!!selectedImages[img.id]} onToggleSelect={handleToggleSelectImage} onViewImage={setViewingImage} />
                                 </div>
                             ))}
                         </div>
@@ -982,19 +983,19 @@ const ImageTextProcessor: React.FC = () => {
                             <p>Ready to generate images.</p>
                         </div>
                     )}
-                 </div>
+                </div>
 
-                 {/* Preview & Action Area */}
-                 <div className="flex-1 flex flex-col min-h-[400px]">
+                {/* Preview & Action Area */}
+                <div className="flex-1 flex flex-col min-h-[400px]">
                     <div className="flex justify-between items-center mb-2">
                         <div className="flex items-center gap-4">
                             <h3 className="font-semibold text-gray-300">Layout Preview</h3>
-                            <Select 
-                                value={insertionStrategy} 
+                            <Select
+                                value={insertionStrategy}
                                 onChange={e => {
-                                    setInsertionStrategy(e.target.value as 'h2_before' | 'p_before' | 'end_of_article'); 
+                                    setInsertionStrategy(e.target.value as 'h2_before' | 'p_before' | 'end_of_article');
                                     setIsDirty(true);
-                                }} 
+                                }}
                                 className="text-sm w-48 bg-gray-800"
                             >
                                 <option value="h2_before">Insert before H2s</option>
@@ -1003,9 +1004,9 @@ const ImageTextProcessor: React.FC = () => {
                         </div>
                         <div className="flex gap-2">
                             {sourceArticleId && (
-                                <Button 
-                                    size="sm" 
-                                    variant="primary" 
+                                <Button
+                                    size="sm"
+                                    variant="primary"
                                     onClick={handleUpdateArticle}
                                     isLoading={isSaving}
                                     disabled={numSelected === 0}
@@ -1022,30 +1023,30 @@ const ImageTextProcessor: React.FC = () => {
                         </div>
                     </div>
                     <div className="flex-1 bg-white rounded-xl overflow-hidden shadow-2xl relative">
-                         {isProcessing && (
-                             <div className="absolute inset-0 bg-black/50 z-10 flex items-center justify-center backdrop-blur-sm">
-                                 <div className="text-white text-center">
-                                     <Spinner size="lg" />
-                                     <p className="mt-2">Processing images for persistence...</p>
-                                 </div>
-                             </div>
-                         )}
-                         <iframe title="preview" srcDoc={finalPreview} className="w-full h-full border-0" sandbox="allow-same-origin" />
+                        {isProcessing && (
+                            <div className="absolute inset-0 bg-black/50 z-10 flex items-center justify-center backdrop-blur-sm">
+                                <div className="text-white text-center">
+                                    <Spinner size="lg" />
+                                    <p className="mt-2">Processing images for persistence...</p>
+                                </div>
+                            </div>
+                        )}
+                        <iframe title="preview" srcDoc={finalPreview} className="w-full h-full border-0" sandbox="allow-same-origin" />
                     </div>
-                 </div>
+                </div>
             </div>
 
             {/* Save Image Set Modal */}
             <Modal isOpen={isSaveImagesModalOpen} onClose={() => setIsSaveImagesModalOpen(false)} title="保存图片集">
                 <div className="space-y-4">
                     <Input label="图片集名称" value={imageSetTag} onChange={e => setImageSetTag(e.target.value)} placeholder="e.g. My Awesome Images" />
-                    
+
                     <Select label="父项目" value={saveImagesParentProjectId} onChange={(e) => setSaveImagesParentProjectId(e.target.value)}>
                         <option value="">Select Project...</option>
                         {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                         <option value="create_new">+ Create New Project</option>
                     </Select>
-                    
+
                     {saveImagesParentProjectId === 'create_new' && (
                         <Input label="New Project Name" value={newSaveImagesParentProjectName} onChange={e => setNewSaveImagesParentProjectName(e.target.value)} />
                     )}

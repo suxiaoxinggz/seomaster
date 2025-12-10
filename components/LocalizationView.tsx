@@ -34,14 +34,14 @@ const TranslationSettingsModal: React.FC<{
     const [localKeys, setLocalKeys] = useState(keys);
     const [visible, setVisible] = useState<Record<string, boolean>>({});
 
-    const toggleVis = (k: string) => setVisible(p => ({...p, [k]: !p[k]}));
+    const toggleVis = (k: string) => setVisible(p => ({ ...p, [k]: !p[k] }));
 
     const renderField = (label: string, key: keyof TranslationApiKeys | 'microsoft_region', placeholder: string, link: string) => (
         <div className="mb-4">
             <div className="flex justify-between items-center mb-1">
                 <label className="block text-sm font-medium text-gray-300">{label}</label>
                 <a href={link} target="_blank" rel="noreferrer" className="text-xs text-blue-400 hover:underline flex items-center">
-                    Get Key <ExternalLinkIcon className="w-3 h-3 ml-1"/>
+                    Get Key <ExternalLinkIcon className="w-3 h-3 ml-1" />
                 </a>
             </div>
             <div className="relative">
@@ -50,10 +50,10 @@ const TranslationSettingsModal: React.FC<{
                     className="w-full bg-gray-900 border border-gray-600 rounded-md px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder={placeholder}
                     value={localKeys[key] || ''}
-                    onChange={e => setLocalKeys({...localKeys, [key]: e.target.value})}
+                    onChange={e => setLocalKeys({ ...localKeys, [key]: e.target.value })}
                 />
                 <button type="button" onClick={() => toggleVis(key)} className="absolute right-2 top-2.5 text-gray-500 hover:text-white">
-                    {visible[key] ? <EyeOffIcon className="w-4 h-4"/> : <EyeIcon className="w-4 h-4"/>}
+                    {visible[key] ? <EyeOffIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
                 </button>
             </div>
         </div>
@@ -82,12 +82,11 @@ const TranslationSettingsModal: React.FC<{
 
 export const LocalizationView: React.FC = () => {
     const context = useContext(AppContext);
-    if (!context) return null;
-    const { articles, setArticles, models, defaultModelId, supabase, session, fetchData } = context;
+    const { articles = [], setArticles, models = [], defaultModelId, supabase, session, fetchData } = context || {};
 
     const [selectedArticleId, setSelectedArticleId] = useState('');
     const [targetLanguage, setTargetLanguage] = useState('Chinese (Simplified)');
-    
+
     // Translation Logic State
     const [selectedProvider, setSelectedProvider] = useState<TranslationProvider>(TranslationProvider.LLM);
     const [selectedModelId, setSelectedModelId] = useState(defaultModelId || models[0]?.id || '');
@@ -97,12 +96,12 @@ export const LocalizationView: React.FC = () => {
         [TranslationProvider.MICROSOFT]: '',
         'microsoft_region': ''
     });
-    
+
     const [isTranslating, setIsTranslating] = useState(false);
     const [translatedContent, setTranslatedContent] = useState('');
     const [translatedTitle, setTranslatedTitle] = useState('');
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-    
+
     const contentRef = useRef('');
 
     const currentModel = models.find(m => m.id === selectedModelId);
@@ -111,6 +110,8 @@ export const LocalizationView: React.FC = () => {
     // Group models
     const presetModels = models.filter(m => m.type === ModelProvider.PRESET);
     const customModels = models.filter(m => m.type === ModelProvider.CUSTOM);
+
+    if (!context) return null;
 
     const handleTranslate = async () => {
         if (!sourceArticle) {
@@ -122,12 +123,12 @@ export const LocalizationView: React.FC = () => {
         setTranslatedContent('');
         setTranslatedTitle('');
         contentRef.current = '';
-        
+
         try {
             // STRATEGY A: LLM Streaming
             if (selectedProvider === TranslationProvider.LLM) {
                 if (!currentModel) throw new Error("No LLM Model selected.");
-                
+
                 // 1. Translate Title
                 const titlePrompt = `Translate this title to ${targetLanguage}: ${sourceArticle.title}`;
                 let titleBuffer = '';
@@ -136,15 +137,15 @@ export const LocalizationView: React.FC = () => {
 
                 // 2. Translate Content
                 await translateTextStream(
-                    sourceArticle.content, 
-                    targetLanguage, 
-                    currentModel, 
+                    sourceArticle.content,
+                    targetLanguage,
+                    currentModel,
                     (chunk) => {
                         contentRef.current += chunk;
                         setTranslatedContent(contentRef.current);
                     }
                 );
-            } 
+            }
             // STRATEGY B: Dedicated API (One-shot fetch)
             else {
                 // For better UX, we fake a "loading" title while fetching
@@ -190,11 +191,11 @@ export const LocalizationView: React.FC = () => {
                 subProjectId: sourceArticle.subProjectId,
                 createdAt: new Date().toISOString(),
                 modelUsed: `${providerName} (Translation)`,
-                publishedDestinations: [], 
+                publishedDestinations: [],
             };
 
             const { error } = await supabase.from('articles').insert({ ...newArticle, user_id: session.user.id } as any);
-            
+
             if (error) throw error;
 
             await fetchData();
@@ -258,9 +259,9 @@ export const LocalizationView: React.FC = () => {
                                 </div>
                             )}
 
-                            <Button 
-                                className="w-full mt-4" 
-                                onClick={handleTranslate} 
+                            <Button
+                                className="w-full mt-4"
+                                onClick={handleTranslate}
                                 isLoading={isTranslating}
                                 disabled={!selectedArticleId || isTranslating}
                             >
@@ -268,7 +269,7 @@ export const LocalizationView: React.FC = () => {
                             </Button>
                         </div>
                     </Card>
-                    
+
                     {sourceArticle && (
                         <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700 text-sm text-gray-400">
                             <p><strong>源字数:</strong> {sourceArticle.content.length} chars</p>
@@ -283,9 +284,9 @@ export const LocalizationView: React.FC = () => {
                         {/* Source View */}
                         <div className="flex flex-col h-full">
                             <h3 className="text-gray-400 font-semibold mb-2 bg-gray-800 py-2 px-3 rounded-t-lg border-b border-gray-700">原文 Markdown</h3>
-                            <textarea 
+                            <textarea
                                 readOnly
-                                value={sourceArticle?.content || ''} 
+                                value={sourceArticle?.content || ''}
                                 className="w-full h-full bg-gray-900/50 border border-gray-700 rounded-b-lg p-4 text-gray-400 resize-none focus:outline-none font-mono text-sm"
                                 placeholder="选择左侧文章以加载内容..."
                             />
@@ -297,7 +298,7 @@ export const LocalizationView: React.FC = () => {
                                 <span>译文 Preview ({selectedProvider === TranslationProvider.LLM ? 'AI' : 'API'})</span>
                                 {translatedTitle && <span className="text-xs text-white bg-blue-600 px-2 py-0.5 rounded truncate max-w-[200px]">{translatedTitle}</span>}
                             </h3>
-                            <textarea 
+                            <textarea
                                 value={translatedContent}
                                 onChange={e => setTranslatedContent(e.target.value)}
                                 className="w-full h-full bg-gray-800 border border-gray-600 rounded-b-lg p-4 text-white resize-none focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono text-sm"
@@ -319,12 +320,12 @@ export const LocalizationView: React.FC = () => {
                     </div>
                 </div>
             </div>
-            
-            <TranslationSettingsModal 
-                isOpen={isSettingsOpen} 
-                onClose={() => setIsSettingsOpen(false)} 
-                keys={apiKeys} 
-                onSave={setApiKeys} 
+
+            <TranslationSettingsModal
+                isOpen={isSettingsOpen}
+                onClose={() => setIsSettingsOpen(false)}
+                keys={apiKeys}
+                onSave={setApiKeys}
             />
         </div>
     );

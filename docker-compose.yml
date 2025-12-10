@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  # 🐍 后端 API 服务
+  backend:
+    build:
+      context: ./backend
+    container_name: seo-backend
+    restart: always
+    environment:
+      # 🔐 敏感信息
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - DATAFORSEO_LOGIN=${DATAFORSEO_LOGIN}
+      - DATAFORSEO_PASSWORD=${DATAFORSEO_PASSWORD}
+      # - OPENAI_API_KEY=${OPENAI_API_KEY}
+    networks:
+      - internal-net
+
+  # 🌐 前端 Nginx + 反向代理
+  frontend:
+    image: nginx:alpine
+    container_name: seo-frontend
+    restart: always
+    volumes:
+      - ./dist:/usr/share/nginx/html # ⚠️ Assumes 'npm run build' has been run to create 'dist'
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    ports:
+      # 🛡️ 唯一暴露端口，仅限本地访问 (配合 1Panel 反代)
+      - "127.0.0.1:3060:80"
+    depends_on:
+      - backend
+    networks:
+      - internal-net
+
+networks:
+  internal-net:
+    driver: bridge

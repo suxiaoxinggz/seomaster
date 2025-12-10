@@ -460,12 +460,17 @@ const ModelSettings: React.FC = () => {
                         />
                     )}
 
-                    {editingModel?.apiProvider !== ApiProvider.GEMINI ? (
-                        <Input label="API Key" type="password" placeholder="sk-..." value={editingModel?.apiKey || ''} onChange={(e) => setEditingModel({ ...editingModel, apiKey: e.target.value })} />
-                    ) : (
-                        <div className="bg-blue-900/20 border border-blue-800 p-3 rounded text-sm text-blue-200">
-                            Gemini API Key is handled server-side securely. You do not need to enter it here unless you are setting up a custom endpoint.
-                        </div>
+                    <Input
+                        label="API Key"
+                        type="password"
+                        placeholder={editingModel?.apiProvider === ApiProvider.GEMINI ? "Leave empty to use System Key (Free)" : "sk-..."}
+                        value={editingModel?.apiKey || ''}
+                        onChange={(e) => setEditingModel({ ...editingModel, apiKey: e.target.value })}
+                    />
+                    {editingModel?.apiProvider === ApiProvider.GEMINI && (
+                        <p className="text-xs text-blue-300 mt-1">
+                            * Gemini "Smart Mode": Enter your own key to bypass limits, or leave empty to use our secure server-side key.
+                        </p>
                     )}
 
                     {isCompatibleProtocol && (
@@ -493,8 +498,8 @@ const ModelSettings: React.FC = () => {
 
                     {testStatus !== 'idle' && (
                         <div className={`p-3 rounded-lg border text-sm ${testStatus === 'success' ? 'bg-green-900/20 border-green-800 text-green-300' :
-                                testStatus === 'error' ? 'bg-red-900/20 border-red-800 text-red-300' :
-                                    'bg-blue-900/20 border-blue-800 text-blue-300'
+                            testStatus === 'error' ? 'bg-red-900/20 border-red-800 text-red-300' :
+                                'bg-blue-900/20 border-blue-800 text-blue-300'
                             }`}>
                             {testStatus === 'testing' ? 'Testing connection...' : testMessage}
                         </div>

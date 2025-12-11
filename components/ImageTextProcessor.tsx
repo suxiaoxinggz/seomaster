@@ -1031,7 +1031,6 @@ const ImageTextProcessor: React.FC = () => {
                     name: newSaveImagesParentProjectName,
                     user_id: session.user.id,
                     created_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString(),
                 }).select().single();
 
                 const data = rawData as any;

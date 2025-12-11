@@ -230,7 +230,6 @@ const ArticleGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
                     id: `proj-${Date.now()}`,
                     name: newParentProjectName.trim(),
                     created_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString(),
                 };
                 const { data: newProjDataRaw, error: projError } = await supabase.from('projects').insert({ ...newProject, user_id: session.user.id } as any).select().single();
                 const newProjData = newProjDataRaw as any;

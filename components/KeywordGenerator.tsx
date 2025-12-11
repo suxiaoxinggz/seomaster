@@ -399,7 +399,6 @@ const KeywordGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
                     id: crypto.randomUUID(),
                     name: newParentProjectName.trim(),
                     created_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString(),
                 };
                 const { data, error } = await supabase.from('projects').insert({ ...newProject, user_id: session.user.id } as any).select().single();
                 if (error) throw error;

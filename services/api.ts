@@ -48,8 +48,57 @@ export const secureFetch = async <T>(endpoint: string, method: string = 'GET', b
         // 5. Return data
         return await response.json();
 
+
     } catch (error) {
         console.error(`Secure Fetch Error [${endpoint}]:`, error);
+        throw error;
+    }
+};
+
+/**
+ * Upload an image Blob/File to the backend R2 endpoint.
+ * Returns the public URL of the uploaded file.
+ */
+export const uploadImageToBackend = async (file: Blob | File, filename: string = 'image.png'): Promise<string> => {
+    // 1. Get current session token
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+
+    if (!token) {
+        throw new Error("Authentication required. Please log in.");
+    }
+
+    // 2. Prepare Form Data
+    const formData = new FormData();
+    formData.append('file', file, filename);
+    formData.append('folder', 'generated_images');
+
+    // 3. Make fetch request
+    const url = `${API_BASE}/upload/r2`;
+
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+                // Do NOT set Content-Type, browser handles it for FormData(multipart)
+            },
+            body: formData,
+        });
+
+        // 4. Handle errors
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            const errorMessage = errorData.detail || errorData.message || `Upload Error: ${response.status}`;
+            throw new Error(errorMessage);
+        }
+
+        // 5. Return data
+        const result = await response.json();
+        return result.url;
+
+    } catch (error) {
+        console.error(`Upload Error:`, error);
         throw error;
     }
 };

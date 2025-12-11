@@ -1,7 +1,7 @@
 
 import React, { useContext, useState } from 'react';
 import { Page } from '../types';
-import { WandIcon, SettingsIcon, DashboardIcon, DocumentIcon, ImageIcon, GlobeIcon, PublishIcon, ChartBarIcon, RobotIcon } from './icons';
+import { WandIcon, SettingsIcon, DashboardIcon, DocumentIcon, ImageIcon, GlobeIcon, PublishIcon, ChartBarIcon, RobotIcon, DatabaseIcon, UserIcon } from './icons';
 import { AppContext } from '../context/AppContext';
 
 interface SidebarProps {
@@ -22,8 +22,8 @@ const NavItem: React.FC<{
         disabled={isComingSoon}
         title={isCollapsed ? label : undefined}
         className={`group relative flex items-center w-full px-4 py-3 my-1 transition-all duration-300 rounded-lg overflow-hidden ${isActive
-                ? 'bg-gradient-to-r from-blue-600/20 to-blue-600/10 text-blue-400 border border-blue-500/20'
-                : 'text-gray-400 hover:bg-white/5 hover:text-gray-200 border border-transparent'
+            ? 'bg-gradient-to-r from-blue-600/20 to-blue-600/10 text-blue-400 border border-blue-500/20'
+            : 'text-gray-400 hover:bg-white/5 hover:text-gray-200 border border-transparent'
             } ${isComingSoon ? 'cursor-not-allowed opacity-50' : ''}`}
     >
         <div className={`flex-shrink-0 w-5 h-5 transition-colors duration-300 ${isActive ? 'text-blue-400' : 'text-gray-500 group-hover:text-gray-300'}`}>
@@ -90,6 +90,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setPage }) => {
                     <div className="space-y-1 mb-8">
                         <NavItem icon={<DashboardIcon />} label="Overview" isActive={currentPage === 'dashboard'} onClick={() => setPage('dashboard')} isCollapsed={isCollapsed} />
                         <NavItem icon={<ChartBarIcon />} label="SEO Data Center" isActive={currentPage === 'seo-data'} onClick={() => setPage('seo-data')} isCollapsed={isCollapsed} />
+                        <NavItem icon={<DatabaseIcon />} label="Data Library" isActive={currentPage === 'seo-assets'} onClick={() => setPage('seo-assets')} isCollapsed={isCollapsed} />
                         <NavItem icon={<RobotIcon />} label="SEO Strategy & Code" isActive={currentPage === 'seo-strategy'} onClick={() => setPage('seo-strategy')} isCollapsed={isCollapsed} />
                         <NavItem icon={<WandIcon />} label="Keyword Map" isActive={currentPage === 'keyword-map'} onClick={() => setPage('keyword-map')} isCollapsed={isCollapsed} />
                         <NavItem icon={<DocumentIcon />} label="Articles" isActive={currentPage === 'outline-article'} onClick={() => setPage('outline-article')} isCollapsed={isCollapsed} />
@@ -108,6 +109,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setPage }) => {
                 {/* Footer */}
                 <div className="mt-auto">
                     <div className="pt-4 border-t border-white/5">
+                        <NavItem icon={<UserIcon />} label="Account" isActive={currentPage === 'account'} onClick={() => setPage('account')} isCollapsed={isCollapsed} />
                         <NavItem icon={<SettingsIcon />} label="Model Settings" isActive={currentPage === 'settings'} onClick={() => setPage('settings')} isCollapsed={isCollapsed} />
                         <button
                             onClick={handleLogout}

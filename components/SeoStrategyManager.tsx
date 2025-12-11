@@ -36,7 +36,7 @@ const generateRobotsTxt = (rules: RobotsRule[], sitemaps: string[]): string => {
 const generateRobotsTsCode = (rules: RobotsRule[], sitemaps: string[]): string => {
     const rulesString = JSON.stringify(rules, null, 4).replace(/"([^"]+)":/g, '$1:'); // Simple cleanup
     const sitemapsString = JSON.stringify(sitemaps, null, 4);
-    
+
     return `// app/robots.ts
 import type { MetadataRoute } from "next";
 
@@ -134,16 +134,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Card>
                 <h3 className="text-lg font-bold text-white mb-4">Global Metadata Configuration (App Router)</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Input label="Site Name (Default Title)" value={config.siteName} onChange={e => setConfig({...config, siteName: e.target.value})} />
-                    <Input label="Base URL (metadataBase)" value={config.baseUrl} onChange={e => setConfig({...config, baseUrl: e.target.value})} />
-                    <Input label="Title Template (%s)" value={config.titleTemplate} onChange={e => setConfig({...config, titleTemplate: e.target.value})} />
-                    <Input label="Twitter Handle (Optional)" value={config.twitterHandle} onChange={e => setConfig({...config, twitterHandle: e.target.value})} />
+                    <Input label="Site Name (Default Title)" value={config.siteName} onChange={e => setConfig({ ...config, siteName: e.target.value })} />
+                    <Input label="Base URL (metadataBase)" value={config.baseUrl} onChange={e => setConfig({ ...config, baseUrl: e.target.value })} />
+                    <Input label="Title Template (%s)" value={config.titleTemplate} onChange={e => setConfig({ ...config, titleTemplate: e.target.value })} />
+                    <Input label="Twitter Handle (Optional)" value={config.twitterHandle} onChange={e => setConfig({ ...config, twitterHandle: e.target.value })} />
                     <div className="col-span-1 md:col-span-2">
                         <label className="block text-sm font-medium text-gray-300 mb-1">Default Description</label>
-                        <textarea 
+                        <textarea
                             className="w-full bg-gray-900 border border-gray-600 rounded-md px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 h-20 text-sm"
-                            value={config.defaultDescription} 
-                            onChange={e => setConfig({...config, defaultDescription: e.target.value})} 
+                            value={config.defaultDescription}
+                            onChange={e => setConfig({ ...config, defaultDescription: e.target.value })}
                         />
                     </div>
                 </div>
@@ -152,7 +152,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Card className="bg-gray-900 border-gray-800">
                 <div className="flex justify-between items-center mb-2">
                     <h4 className="text-sm font-semibold text-blue-400">Generated app/layout.tsx Code</h4>
-                    <Button size="sm" variant="secondary" onClick={() => {navigator.clipboard.writeText(generateLayoutCode()); toast.success("Copied!");}}>Copy Code</Button>
+                    <Button size="sm" variant="secondary" onClick={() => { navigator.clipboard.writeText(generateLayoutCode()); toast.success("Copied!"); }}>Copy Code</Button>
                 </div>
                 <pre className="text-xs text-gray-300 font-mono overflow-x-auto p-4 bg-black/50 rounded-lg border border-gray-700">
                     {generateLayoutCode()}
@@ -206,7 +206,7 @@ const TechSeoTab: React.FC = () => {
             toast.error("No articles found in database.");
             return;
         }
-        
+
         const baseUrl = 'https://mistorify.com/blog'; // Default base
         const newEntries = articles.map(article => ({
             url: `${baseUrl}/${article.id}`, // Simplified slug generation
@@ -220,7 +220,7 @@ const TechSeoTab: React.FC = () => {
             const uniqueNew = newEntries.filter(e => !existingUrls.has(e.url));
             return [...prev, ...uniqueNew];
         });
-        
+
         toast.success(`Synced ${newEntries.length} articles to Sitemap!`);
     };
 
@@ -261,17 +261,17 @@ const TechSeoTab: React.FC = () => {
             <Card className="flex flex-col gap-4">
                 <div className="flex justify-between items-center">
                     <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                        <RobotIcon className="w-5 h-5" /> 
+                        <RobotIcon className="w-5 h-5" />
                         {viewMode === 'code' ? 'app/robots.ts' : 'robots.txt'}
                     </h3>
                     <div className="flex gap-2">
                         {viewMode === 'code' && (
-                            <Button size="sm" variant="secondary" onClick={() => {navigator.clipboard.writeText(generateRobotsTsCode(rules, sitemaps)); toast.success("Copied TS code!");}}>Copy TS</Button>
+                            <Button size="sm" variant="secondary" onClick={() => { navigator.clipboard.writeText(generateRobotsTsCode(rules, sitemaps)); toast.success("Copied TS code!"); }}>Copy TS</Button>
                         )}
-                        <Button size="sm" onClick={handleDownloadRobots}><DownloadIcon className="w-4 h-4 mr-1"/> Download .txt</Button>
+                        <Button size="sm" onClick={handleDownloadRobots}><DownloadIcon className="w-4 h-4 mr-1" /> Download .txt</Button>
                     </div>
                 </div>
-                
+
                 {viewMode === 'preview' ? (
                     <div className="space-y-3">
                         {rules.map((rule, idx) => (
@@ -297,7 +297,7 @@ const TechSeoTab: React.FC = () => {
             <Card className="flex flex-col gap-4">
                 <div className="flex justify-between items-center">
                     <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                        <GlobeIcon className="w-5 h-5" /> 
+                        <GlobeIcon className="w-5 h-5" />
                         {viewMode === 'code' ? 'app/sitemap.ts' : 'sitemap.xml'}
                     </h3>
                     <div className="flex gap-2">
@@ -306,9 +306,9 @@ const TechSeoTab: React.FC = () => {
                             从数据库同步
                         </Button>
                         {viewMode === 'code' && (
-                            <Button size="sm" variant="secondary" onClick={() => {navigator.clipboard.writeText(generateSitemapTsCode(sitemapEntries)); toast.success("Copied TS code!");}}>Copy TS</Button>
+                            <Button size="sm" variant="secondary" onClick={() => { navigator.clipboard.writeText(generateSitemapTsCode(sitemapEntries)); toast.success("Copied TS code!"); }}>Copy TS</Button>
                         )}
-                        <Button size="sm" onClick={handleDownloadSitemap}><DownloadIcon className="w-4 h-4 mr-1"/> .xml</Button>
+                        <Button size="sm" onClick={handleDownloadSitemap}><DownloadIcon className="w-4 h-4 mr-1" /> .xml</Button>
                     </div>
                 </div>
 
@@ -340,26 +340,26 @@ const TechSeoTab: React.FC = () => {
                             <WandIcon className="w-4 h-4 mr-1" />
                             Sync Docs from Articles
                         </Button>
-                        <Button size="sm" onClick={handleDownloadLlms}><DownloadIcon className="w-4 h-4 mr-1"/> Download public/llms.txt</Button>
+                        <Button size="sm" onClick={handleDownloadLlms}><DownloadIcon className="w-4 h-4 mr-1" /> Download public/llms.txt</Button>
                     </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-3">
-                        <Input label="Project Name" value={llmsConfig.projectName} onChange={e => setLlmsConfig({...llmsConfig, projectName: e.target.value})} />
+                        <Input label="Project Name" value={llmsConfig.projectName} onChange={e => setLlmsConfig({ ...llmsConfig, projectName: e.target.value })} />
                         <div>
                             <label className="block text-sm font-medium text-gray-300 mb-1">Short Summary (For context window)</label>
-                            <textarea 
+                            <textarea
                                 className="w-full bg-gray-900 border border-gray-600 rounded-md p-2 text-sm text-gray-300 h-20 resize-none"
                                 value={llmsConfig.summary}
-                                onChange={e => setLlmsConfig({...llmsConfig, summary: e.target.value})}
+                                onChange={e => setLlmsConfig({ ...llmsConfig, summary: e.target.value })}
                             />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-300 mb-1">Introduction (Detailed)</label>
-                            <textarea 
+                            <textarea
                                 className="w-full bg-gray-900 border border-gray-600 rounded-md p-2 text-sm text-gray-300 h-32"
                                 value={llmsConfig.intro}
-                                onChange={e => setLlmsConfig({...llmsConfig, intro: e.target.value})}
+                                onChange={e => setLlmsConfig({ ...llmsConfig, intro: e.target.value })}
                             />
                         </div>
                     </div>
@@ -377,9 +377,9 @@ const StructuredDataTab: React.FC = () => {
     const [pagePath, setPagePath] = useState('/fba-2026-calculator');
     const [appName, setAppName] = useState('Mistorify 2026 FBA Fee Calculator');
     const [appDesc, setAppDesc] = useState('A privacy-first Amazon FBA calculator to classify 2026 size tiers and estimate fulfillment fees based on dimension and unit-weight rules.');
-    
+
     // FAQ State
-    const [faqs, setFaqs] = useState<{q: string, a: string}[]>([
+    const [faqs, setFaqs] = useState<{ q: string, a: string }[]>([
         { q: "Does the calculator check both dimensions and unit weight?", a: "Yes. It validates Amazon 2026 size-tier thresholds using both dimension rules and unit-weight rules, and flags oversize edge cases." },
         { q: "Is my data uploaded to the server?", a: "No. Calculation runs locally in your browser to protect seller data privacy." }
     ]);
@@ -418,7 +418,7 @@ export function SoftwareAppLd() {
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/<\/script>/g, '<\\/script>') }}
     />
   );
 }
@@ -430,7 +430,7 @@ export function FaqLd() {
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }}
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd).replace(/<\/script>/g, '<\\/script>') }}
     />
   );
 }
@@ -451,7 +451,7 @@ export function FaqLd() {
                         <Input label="App Name" value={appName} onChange={e => setAppName(e.target.value)} />
                         <div>
                             <label className="block text-sm font-medium text-gray-300 mb-1">Description</label>
-                            <textarea 
+                            <textarea
                                 className="w-full bg-gray-900 border border-gray-600 rounded-md p-2 text-sm text-gray-300 h-24"
                                 value={appDesc}
                                 onChange={e => setAppDesc(e.target.value)}
@@ -464,22 +464,22 @@ export function FaqLd() {
                     <h3 className="text-lg font-bold text-white mb-4">FAQ Schema</h3>
                     {faqs.map((f, i) => (
                         <div key={i} className="mb-4 pb-4 border-b border-gray-700 last:border-0">
-                            <Input label={`Question ${i+1}`} value={f.q} onChange={e => {
+                            <Input label={`Question ${i + 1}`} value={f.q} onChange={e => {
                                 const newFaqs = [...faqs];
                                 newFaqs[i].q = e.target.value;
                                 setFaqs(newFaqs);
                             }} className="mb-2" />
-                            <textarea 
+                            <textarea
                                 className="w-full bg-gray-900 border border-gray-600 rounded-md p-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                value={f.a} 
+                                value={f.a}
                                 onChange={e => {
-                                const newFaqs = [...faqs];
-                                newFaqs[i].a = e.target.value;
-                                setFaqs(newFaqs);
-                            }} rows={3} placeholder="Answer" />
+                                    const newFaqs = [...faqs];
+                                    newFaqs[i].a = e.target.value;
+                                    setFaqs(newFaqs);
+                                }} rows={3} placeholder="Answer" />
                         </div>
                     ))}
-                    <Button size="sm" variant="secondary" onClick={() => setFaqs([...faqs, {q:'', a:''}])}>Add Question</Button>
+                    <Button size="sm" variant="secondary" onClick={() => setFaqs([...faqs, { q: '', a: '' }])}>Add Question</Button>
                 </Card>
             </div>
 
@@ -487,7 +487,7 @@ export function FaqLd() {
                 <Card className="flex-1 bg-gray-900 border-gray-800">
                     <div className="flex justify-between items-center mb-2">
                         <h4 className="text-sm font-semibold text-purple-400">React Component Code</h4>
-                        <Button size="sm" variant="secondary" onClick={() => {navigator.clipboard.writeText(generateComponentCode()); toast.success("Copied!");}}>Copy Components</Button>
+                        <Button size="sm" variant="secondary" onClick={() => { navigator.clipboard.writeText(generateComponentCode()); toast.success("Copied!"); }}>Copy Components</Button>
                     </div>
                     <pre className="text-xs text-gray-300 font-mono overflow-auto p-4 bg-black/50 rounded-lg border border-gray-700 h-[600px]">
                         {generateComponentCode()}
@@ -583,7 +583,7 @@ export default function Page() {
             <Card>
                 <h3 className="text-lg font-bold text-white mb-4">Semantic Content Strategy</h3>
                 <p className="text-gray-400 text-sm mb-4">
-                    For optimal SEO in Next.js 16, content must be rendered on the server. 
+                    For optimal SEO in Next.js 16, content must be rendered on the server.
                     Ensure your tool pages include these semantic sections visible even without JavaScript.
                 </p>
                 <ul className="space-y-2 text-sm text-gray-300 list-disc pl-5">
@@ -597,7 +597,7 @@ export default function Page() {
             <Card className="bg-gray-900 border-gray-800">
                 <div className="flex justify-between items-center mb-2">
                     <h4 className="text-sm font-semibold text-purple-400">Semantic Page Template (page.tsx)</h4>
-                    <Button size="sm" variant="secondary" onClick={() => {navigator.clipboard.writeText(semanticStructure); toast.success("Copied!");}}>Copy Code</Button>
+                    <Button size="sm" variant="secondary" onClick={() => { navigator.clipboard.writeText(semanticStructure); toast.success("Copied!"); }}>Copy Code</Button>
                 </div>
                 <pre className="text-xs text-gray-300 font-mono overflow-auto p-4 bg-black/50 rounded-lg border border-gray-700 h-96">
                     {semanticStructure}
@@ -631,11 +631,10 @@ const SeoStrategyManager: React.FC = () => {
                     <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id as any)}
-                        className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-all ${
-                            activeTab === tab.id 
-                            ? 'bg-blue-600 text-white shadow-lg' 
+                        className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === tab.id
+                            ? 'bg-blue-600 text-white shadow-lg'
                             : 'text-gray-400 hover:text-white hover:bg-gray-700'
-                        }`}
+                            }`}
                     >
                         {tab.icon}
                         {tab.label}

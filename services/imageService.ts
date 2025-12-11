@@ -1,4 +1,4 @@
-import { ImageSource, ImageObject, PixabayParams, UnsplashParams, KolarsParams, PollinationsParams, ReplicateParams, HuggingFaceParams, CloudflareParams, OpenRouterParams, NebiusParams, ZhipuImageParams, ImageApiKeys } from '../types';
+import { ImageSource, ImageObject, PixabayParams, UnsplashParams, KolarsParams, PollinationsParams, ReplicateParams, HuggingFaceParams, CloudflareParams, OpenRouterParams, NebiusParams, ZhipuImageParams, ModelScopeImageParams, VolcEngineImageParams, ImageApiKeys } from '../types';
 
 // --- CORE UTILITY: Smart Image Standardization ---
 
@@ -18,7 +18,7 @@ const standardizeToUrl = (input: string | Blob, mimeType: string = 'image/png'):
     if (input instanceof Blob) {
         return URL.createObjectURL(input);
     }
-    
+
     if (typeof input === 'string') {
         // Case A: Already a Data URL
         if (input.startsWith('data:')) {
@@ -34,7 +34,7 @@ const standardizeToUrl = (input: string | Blob, mimeType: string = 'image/png'):
         // Case C: Standard URL (HTTP/HTTPS)
         return input;
     }
-    
+
     return '';
 };
 
@@ -48,9 +48,9 @@ export const convertUrlToBase64 = async (url: string): Promise<string> => {
         // 2. Fetch the resource (works for blob: urls and public http urls)
         const response = await fetch(url);
         if (!response.ok) throw new Error(`Failed to fetch image: ${response.statusText}`);
-        
+
         const blob = await response.blob();
-        
+
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onloadend = () => {
@@ -87,7 +87,7 @@ const findImageUrlsRecursively = (data: any): string[] => {
         if (data.image) return findImageUrlsRecursively(data.image);
         if (data.images) return findImageUrlsRecursively(data.images);
         if (data.output) return findImageUrlsRecursively(data.output);
-        
+
         // Brute force: values
         return Object.values(data).flatMap(findImageUrlsRecursively);
     }
@@ -137,7 +137,7 @@ const normalizeKolorsResponse = (data: any, params: KolarsParams): ImageObject[]
         // Kolors usually returns URLs, but check for objects just in case
         const rawUrl = typeof item === 'string' ? item : (item.url || item.b64_json);
         const finalUrl = standardizeToUrl(rawUrl);
-        
+
         return {
             id: `${data.seed || 'kolors'}-${Date.now()}-${index}`,
             url_regular: finalUrl,
@@ -155,7 +155,7 @@ const normalizeKolorsResponse = (data: any, params: KolarsParams): ImageObject[]
 
 const normalizePollinationsResponse = (urls: string[], params: PollinationsParams): ImageObject[] => {
     return urls.map((url, index) => ({
-        id: `poly-${Date.now()}-${index}`, 
+        id: `poly-${Date.now()}-${index}`,
         url_regular: url,
         url_full: url,
         alt_description: params.prompt,
@@ -171,7 +171,7 @@ const normalizePollinationsResponse = (urls: string[], params: PollinationsParam
 const normalizeReplicateResponse = (output: any, params: ReplicateParams): ImageObject[] => {
     // Smart Recursive Extraction because Replicate models are inconsistent
     const rawUrls = findImageUrlsRecursively(output);
-    
+
     // Fallback if extraction failed but we have something
     if (rawUrls.length === 0 && output) {
         console.warn("Replicate normalization couldn't find standard URLs. Dumping output:", output);
@@ -229,7 +229,7 @@ const normalizeCloudflareResponse = (blob: Blob, params: CloudflareParams): Imag
 const normalizeOpenRouterResponse = (data: any, params: OpenRouterParams): ImageObject[] => {
     // OpenRouter (and OpenAI) often return { data: [ { url: ... }, { b64_json: ... } ] }
     if (!data.data || !Array.isArray(data.data)) return [];
-    
+
     return data.data.map((item: any, index: number) => {
         // Priority: b64_json (stable) > url (ephemeral)
         const rawContent = item.b64_json || item.url;
@@ -252,7 +252,7 @@ const normalizeOpenRouterResponse = (data: any, params: OpenRouterParams): Image
 
 const normalizeNebiusResponse = (data: any, params: NebiusParams): ImageObject[] => {
     if (!data.data || !Array.isArray(data.data)) return [];
-    
+
     return data.data.map((item: any, index: number) => {
         const rawContent = item.b64_json || item.url;
         const finalUrl = standardizeToUrl(rawContent, 'image/png');
@@ -290,7 +290,51 @@ const normalizeZhipuResponse = (data: any, params: ZhipuImageParams): ImageObjec
             source_platform: ImageSource.ZHIPU_COGVIEW,
             source_url: 'https://bigmodel.cn/',
             width: width,
-            height: height,
+        };
+    });
+};
+
+const normalizeModelScopeResponse = (data: any, params: ModelScopeImageParams): ImageObject[] => {
+    // ModelScope via OpenAI-compatible API usually returns data array with urls
+    if (!data.data || !Array.isArray(data.data)) return [];
+
+    return data.data.map((item: any, index: number) => {
+        const rawContent = item.url || item.b64_json;
+        const finalUrl = standardizeToUrl(rawContent, 'image/png');
+
+        return {
+            id: `ms-${Date.now()}-${index}`,
+            url_regular: finalUrl,
+            url_full: finalUrl,
+            alt_description: params.prompt,
+            author_name: 'ModelScope Model',
+            author_url: 'https://modelscope.cn/',
+            source_platform: ImageSource.MODELSCOPE,
+            source_url: 'https://modelscope.cn/',
+            width: 1024,
+            height: 1024,
+        };
+    });
+};
+
+const normalizeVolcEngineResponse = (data: any, params: VolcEngineImageParams): ImageObject[] => {
+    // VolcEngine (Dream AI) returns: { data: [ { url: "..." } ] }
+    if (!data.data || !Array.isArray(data.data)) return [];
+
+    return data.data.map((item: any, index: number) => {
+        const finalUrl = standardizeToUrl(item.url);
+
+        return {
+            id: `volc-${Date.now()}-${index}`,
+            url_regular: finalUrl,
+            url_full: finalUrl,
+            alt_description: params.prompt,
+            author_name: 'Volcano Engine (Dream)',
+            author_url: 'https://www.volcengine.com/',
+            source_platform: ImageSource.VOLCENGINE,
+            source_url: 'https://www.volcengine.com/',
+            width: params.width || 1024,
+            height: params.height || 1024,
         };
     });
 };
@@ -298,7 +342,102 @@ const normalizeZhipuResponse = (data: any, params: ZhipuImageParams): ImageObjec
 
 // --- API Callers ---
 
+// --- Parameter Sanitization (The "Safe Layer") ---
+
+const sanitizeImageParams = (source: ImageSource, params: any): any => {
+    const safeParams = { ...params };
+
+    // Helper: Snap to nearest multiple of 32 (required by Flux/SD)
+    const snapTo32 = (val: number) => Math.round(val / 32) * 32;
+
+    // Helper: Snap to specific allowed sizes
+    const snapToAllowed = (w: number, h: number, allowed: [number, number][]) => {
+        let best = allowed[0];
+        let minDiff = Number.MAX_VALUE;
+        for (const [aw, ah] of allowed) {
+            const diff = Math.abs(aw - w) + Math.abs(ah - h);
+            if (diff < minDiff) {
+                minDiff = diff;
+                best = [aw, ah];
+            }
+        }
+        return best;
+    };
+
+    switch (source) {
+        case ImageSource.DALLE3:
+            // DALL-E 3: Strict sizes only, no negative prompt
+            const allowedDalle = [[1024, 1024], [1024, 1792], [1792, 1024]];
+            const [dw, dh] = snapToAllowed(safeParams.width || 1024, safeParams.height || 1024, allowedDalle as [number, number][]);
+            // DALL-E 3 API takes "size" string, not w/h
+            safeParams.size = `${dw}x${dh}`;
+            delete safeParams.width;
+            delete safeParams.height;
+            delete safeParams.negative_prompt; // Not supported
+            delete safeParams.num_inference_steps; // Not supported
+            break;
+
+        case ImageSource.KOLARS:
+            // Kolors: Wants 'image_size' string, specific values preferred
+            const kw = safeParams.width || 1024;
+            const kh = safeParams.height || 1024;
+            safeParams.image_size = `${kw}x${kh}`;
+            // Ensure steps are within range if provided
+            if (safeParams.num_inference_steps) {
+                safeParams.num_inference_steps = Math.max(10, Math.min(50, safeParams.num_inference_steps));
+            }
+            break;
+
+        case ImageSource.NEBIUS:
+        case ImageSource.REPLICATE:
+            // Flux: Width/Height MUST be multiples of 32
+            if (safeParams.width) safeParams.width = snapTo32(safeParams.width);
+            if (safeParams.height) safeParams.height = snapTo32(safeParams.height);
+            break;
+
+        case ImageSource.ZHIPU_COGVIEW:
+            // Zhipu: Only specific sizes allowed
+            const allowedZhipu = [[1024, 1024], [768, 1344], [864, 1152], [1344, 768], [1152, 864], [1440, 720], [720, 1440]];
+            const [zw, zh] = snapToAllowed(safeParams.width || 1024, safeParams.height || 1024, allowedZhipu as [number, number][]);
+            safeParams.size = `${zw}x${zh}`;
+            break;
+
+        case ImageSource.STABILITY:
+            // Stability: explicit width/height works, but requires multiples of 64 usually. 
+            // Let's enforce multiples of 64 for safety on Stable Image Core
+            if (safeParams.width) safeParams.width = Math.round((safeParams.width || 1024) / 64) * 64;
+            if (safeParams.height) safeParams.height = Math.round((safeParams.height || 1024) / 64) * 64;
+            break;
+
+        case ImageSource.MODELSCOPE:
+            // Custom sanitization for ModelScope
+            if (safeParams.size) delete safeParams.width; // Use size if provided
+            if (safeParams.guidance) safeParams.guidance = Math.max(1.5, Math.min(20, safeParams.guidance));
+            break;
+
+        case ImageSource.VOLCENGINE:
+            // Volcano/Dream AI:
+            if (safeParams.size) {
+                // Try to parse WxH from size if available, though UI might send w/h directly
+                const [w, h] = safeParams.size.split('x').map(Number);
+                if (!isNaN(w)) safeParams.width = w;
+                if (!isNaN(h)) safeParams.height = h;
+                delete safeParams.size;
+            }
+            // Step Range: 1-100
+            if (safeParams.steps) safeParams.steps = Math.max(1, Math.min(100, safeParams.steps));
+            if (safeParams.guidance) safeParams.guidance = Math.max(1.5, Math.min(20, safeParams.guidance));
+            break;
+    }
+
+    return safeParams;
+};
+
+
+// --- API Callers ---
+
 export const fetchPixabayImages = async (params: PixabayParams, apiKey: string): Promise<ImageObject[]> => {
+    // Pixabay is lenient, but usually standard params are fine.
     if (!apiKey) throw new Error("Pixabay API Key is not provided.");
     const url = new URL("https://pixabay.com/api/");
     url.searchParams.append("key", apiKey);
@@ -341,22 +480,26 @@ export const fetchUnsplashImages = async (params: UnsplashParams, apiKey: string
 
 export const fetchKolorsImages = async (params: KolarsParams, apiKey: string): Promise<ImageObject[]> => {
     if (!apiKey) throw new Error("Kolors (SiliconFlow) API Key is not provided.");
+
+    // SAFE LAYER
+    const safe = sanitizeImageParams(ImageSource.KOLARS, params);
+
     const url = "https://api.siliconflow.cn/v1/images/generations";
 
     const body: any = {
-        model: params.model,
-        prompt: params.prompt,
-        image_size: params.image_size,
-        batch_size: params.per_page,
-        num_inference_steps: params.num_inference_steps,
-        guidance_scale: params.guidance_scale,
-        enhance: params.enhance,
-        nologo: params.nologo,
-        transparent: params.transparent,
-        private: params.private,
+        model: safe.model,
+        prompt: safe.prompt,
+        image_size: safe.image_size, // Sanitized string "WxH"
+        batch_size: safe.per_page,
+        num_inference_steps: safe.num_inference_steps,
+        guidance_scale: safe.guidance_scale,
+        enhance: safe.enhance,
+        nologo: safe.nologo,
+        transparent: safe.transparent,
+        private: safe.private,
     };
-    if (params.seed) body.seed = params.seed;
-    if (params.negative_prompt) body.negative_prompt = params.negative_prompt;
+    if (safe.seed) body.seed = safe.seed;
+    if (safe.negative_prompt) body.negative_prompt = safe.negative_prompt;
 
 
     const response = await fetch(url, {
@@ -373,60 +516,67 @@ export const fetchKolorsImages = async (params: KolarsParams, apiKey: string): P
         let parsedError;
         try {
             parsedError = JSON.parse(errorText);
-        } catch(e) {
+        } catch (e) {
             // not a json error
         }
         const message = parsedError?.error?.message || errorText;
         throw new Error(`Kolors API error: ${response.status} - ${message}`);
     }
     const data = await response.json();
-    return normalizeKolorsResponse(data, params);
+    return normalizeKolorsResponse(data, safe);
 };
 
 export const fetchPollinationsImages = async (params: PollinationsParams): Promise<ImageObject[]> => {
     // API key is not used for this service.
-    const urls: string[] = [];
-    const fullPrompt = params.negative_prompt 
-        ? `${params.prompt} [${params.negative_prompt}]`
-        : params.prompt;
 
-    for (let i = 0; i < params.per_page; i++) {
+    // SAFE LAYER (Pollinations is flexible, but let's be safe)
+    const safe = sanitizeImageParams(ImageSource.POLLINATIONS, params);
+
+    const urls: string[] = [];
+    const fullPrompt = safe.negative_prompt
+        ? `${safe.prompt} [${safe.negative_prompt}]`
+        : safe.prompt;
+
+    for (let i = 0; i < safe.per_page; i++) {
         const url = new URL(`https://image.pollinations.ai/prompt/${encodeURIComponent(fullPrompt)}`);
-        
-        if (params.model) url.searchParams.append('model', params.model);
-        if (params.width) url.searchParams.append('width', String(params.width));
-        if (params.height) url.searchParams.append('height', String(params.height));
-        if (params.nologo) url.searchParams.append('nologo', 'true');
-        if (params.enhance) url.searchParams.append('enhance', 'true');
-        if (params.transparent) url.searchParams.append('transparent', 'true');
-        if (params.private) url.searchParams.append('private', 'true');
-        
-        if (params.seed) {
-            url.searchParams.append('seed', String(params.seed + i));
+
+        if (safe.model) url.searchParams.append('model', safe.model);
+        if (safe.width) url.searchParams.append('width', String(safe.width));
+        if (safe.height) url.searchParams.append('height', String(safe.height));
+        if (safe.nologo) url.searchParams.append('nologo', 'true');
+        if (safe.enhance) url.searchParams.append('enhance', 'true');
+        if (safe.transparent) url.searchParams.append('transparent', 'true');
+        if (safe.private) url.searchParams.append('private', 'true');
+
+        if (safe.seed) {
+            url.searchParams.append('seed', String(safe.seed + i));
         } else {
-             url.searchParams.append('r', String(Math.random()));
+            url.searchParams.append('r', String(Math.random()));
         }
-        
+
         urls.push(url.toString());
     }
-    return normalizePollinationsResponse(urls, params);
+    return normalizePollinationsResponse(urls, safe);
 };
 
 export const fetchHuggingFaceImages = async (params: HuggingFaceParams, apiKey: string): Promise<ImageObject[]> => {
     if (!apiKey) throw new Error("Hugging Face Access Token is not provided.");
     if (!params.model) throw new Error("Model ID is required for Hugging Face.");
 
-    const url = `https://api-inference.huggingface.co/models/${params.model}`;
-    
+    // SAFE LAYER
+    const safe = sanitizeImageParams(ImageSource.HUGGINGFACE, params);
+
+    const url = `https://api-inference.huggingface.co/models/${safe.model}`;
+
     // Some models expect parameters in different keys, but standard text-to-image usually accepts this
     const payload = {
-        inputs: params.prompt,
+        inputs: safe.prompt,
         parameters: {
-            negative_prompt: params.negative_prompt,
-            num_inference_steps: params.num_inference_steps,
-            guidance_scale: params.guidance_scale,
-            width: params.width,
-            height: params.height,
+            negative_prompt: safe.negative_prompt,
+            num_inference_steps: safe.num_inference_steps,
+            guidance_scale: safe.guidance_scale,
+            width: safe.width,
+            height: safe.height,
         }
     };
 
@@ -446,38 +596,41 @@ export const fetchHuggingFaceImages = async (params: HuggingFaceParams, apiKey: 
 
     // HF Inference API returns the image binary (Blob) directly for text-to-image
     const blob = await response.blob();
-    return normalizeHuggingFaceResponse(blob, params);
+    return normalizeHuggingFaceResponse(blob, safe);
 };
 
 export const fetchReplicateImages = async (params: ReplicateParams, apiKey: string): Promise<ImageObject[]> => {
     if (!apiKey) throw new Error("Replicate API Token is not provided.");
     if (!params.model) throw new Error("Model ID is required for Replicate.");
 
-    const [owner, name] = params.model.split('/');
+    // SAFE LAYER (Important for Flux multiples of 32)
+    const safe = sanitizeImageParams(ImageSource.REPLICATE, params);
+
+    const [owner, name] = safe.model.split('/');
     // We assume the user inputs "owner/name" or "owner/name:version".
-    
+
     // Attempt to extract slug if present, otherwise assume simple model name
     const modelName = name.split(':')[0];
 
     const startUrl = `https://api.replicate.com/v1/models/${owner}/${modelName}/predictions`;
-    
+
     const input: any = {
-        prompt: params.prompt,
-        width: params.width,
-        height: params.height,
-        num_inference_steps: params.num_inference_steps,
-        guidance_scale: params.guidance_scale,
-        scheduler: params.scheduler,
-        output_format: params.output_format || "png",
-        safety_tolerance: params.safety_tolerance
+        prompt: safe.prompt,
+        width: safe.width,
+        height: safe.height,
+        num_inference_steps: safe.num_inference_steps,
+        guidance_scale: safe.guidance_scale,
+        scheduler: safe.scheduler,
+        output_format: safe.output_format || "png",
+        safety_tolerance: safe.safety_tolerance
     };
-    if (params.negative_prompt) input.negative_prompt = params.negative_prompt;
-    if (params.aspect_ratio) input.aspect_ratio = params.aspect_ratio;
+    if (safe.negative_prompt) input.negative_prompt = safe.negative_prompt;
+    if (safe.aspect_ratio) input.aspect_ratio = safe.aspect_ratio;
 
     const startResponse = await fetch(startUrl, {
         method: "POST",
         headers: {
-            "Authorization": `Bearer ${apiKey}`, 
+            "Authorization": `Bearer ${apiKey}`,
             "Content-Type": "application/json",
         },
         body: JSON.stringify({ input }),
@@ -497,9 +650,9 @@ export const fetchReplicateImages = async (params: ReplicateParams, apiKey: stri
     while (status !== "succeeded" && status !== "failed" && status !== "canceled") {
         attempts++;
         if (attempts > 40) throw new Error("Replicate request timed out.");
-        
+
         await new Promise((resolve) => setTimeout(resolve, 1500)); // Poll every 1.5s
-        
+
         const pollResponse = await fetch(getUrl, {
             headers: {
                 "Authorization": `Bearer ${apiKey}`,
@@ -507,14 +660,14 @@ export const fetchReplicateImages = async (params: ReplicateParams, apiKey: stri
         });
 
         if (!pollResponse.ok) {
-             const errorText = await pollResponse.text();
-             throw new Error(`Replicate API Error (Poll): ${pollResponse.status} - ${errorText}`);
+            const errorText = await pollResponse.text();
+            throw new Error(`Replicate API Error (Poll): ${pollResponse.status} - ${errorText}`);
         }
 
         const pollData = await pollResponse.json();
         status = pollData.status;
         if (status === "succeeded") {
-            return normalizeReplicateResponse(pollData.output, params);
+            return normalizeReplicateResponse(pollData.output, safe);
         }
     }
 
@@ -525,14 +678,17 @@ export const fetchCloudflareImages = async (params: CloudflareParams, accountId:
     if (!accountId || !token) throw new Error("Cloudflare Account ID and API Token are required.");
     if (!params.model) throw new Error("Cloudflare model ID is required.");
 
-    const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${params.model}`;
-    
+    // SAFE LAYER
+    const safe = sanitizeImageParams(ImageSource.CLOUDFLARE, params);
+
+    const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${safe.model}`;
+
     const body: any = {
-        prompt: params.prompt,
-        num_steps: params.num_steps,
-        guidance: params.guidance,
+        prompt: safe.prompt,
+        steps: safe.num_steps, // API expects 'steps' based on your fix
+        guidance: safe.guidance,
     };
-    if (params.negative_prompt) body.negative_prompt = params.negative_prompt;
+    if (safe.negative_prompt) body.negative_prompt = safe.negative_prompt;
 
     const response = await fetch(url, {
         method: "POST",
@@ -550,23 +706,28 @@ export const fetchCloudflareImages = async (params: CloudflareParams, accountId:
 
     // Cloudflare returns binary blob for images
     const blob = await response.blob();
-    return normalizeCloudflareResponse(blob, params);
+    return normalizeCloudflareResponse(blob, safe);
 };
 
 export const fetchOpenRouterImages = async (params: OpenRouterParams, apiKey: string): Promise<ImageObject[]> => {
     if (!apiKey) throw new Error("OpenRouter API Key is not provided.");
-    
+
+    // SAFE LAYER
+    const safe = sanitizeImageParams(ImageSource.OPENROUTER, params);
+
     // OpenRouter uses OpenAI-compatible image generation endpoint
     const url = "https://openrouter.ai/api/v1/images/generations";
-    
+
     const body: any = {
-        model: params.model, 
-        prompt: params.prompt,
-        n: params.per_page,
-        size: params.width && params.height ? `${params.width}x${params.height}` : undefined,
+        model: safe.model,
+        prompt: safe.prompt,
+        n: safe.per_page,
+        size: safe.width && safe.height ? `${safe.width}x${safe.height}` : undefined,
         // Smart optimization: Request Base64 JSON if supported to avoid ephemeral URLs
         response_format: "b64_json"
     };
+    // Text-to-Image models on OpenRouter often accept negative_prompt
+    if (safe.negative_prompt) body.negative_prompt = safe.negative_prompt;
 
     const response = await fetch(url, {
         method: "POST",
@@ -585,25 +746,28 @@ export const fetchOpenRouterImages = async (params: OpenRouterParams, apiKey: st
     }
 
     const data = await response.json();
-    return normalizeOpenRouterResponse(data, params);
+    return normalizeOpenRouterResponse(data, safe);
 };
 
 export const fetchNebiusImages = async (params: NebiusParams, apiKey: string): Promise<ImageObject[]> => {
     if (!apiKey) throw new Error("Nebius API Key is not provided.");
-    
+
+    // SAFE LAYER (Important: Multiples of 32 for Flux)
+    const safe = sanitizeImageParams(ImageSource.NEBIUS, params);
+
     const url = "https://api.studio.nebius.ai/v1/images/generations";
-    
+
     const body: any = {
-        model: params.model,
-        prompt: params.prompt,
-        n: params.per_page,
-        width: params.width || 1024,
-        height: params.height || 1024,
-        num_inference_steps: params.num_inference_steps,
-        seed: params.seed,
+        model: safe.model,
+        prompt: safe.prompt,
+        n: safe.per_page,
+        width: safe.width || 1024,
+        height: safe.height || 1024,
+        num_inference_steps: safe.num_inference_steps,
+        seed: safe.seed,
         response_format: "b64_json"
     };
-    if (params.negative_prompt) body.negative_prompt = params.negative_prompt;
+    if (safe.negative_prompt) body.negative_prompt = safe.negative_prompt;
 
     const response = await fetch(url, {
         method: "POST",
@@ -621,19 +785,22 @@ export const fetchNebiusImages = async (params: NebiusParams, apiKey: string): P
     }
 
     const data = await response.json();
-    return normalizeNebiusResponse(data, params);
+    return normalizeNebiusResponse(data, safe);
 };
 
 export const fetchZhipuImages = async (params: ZhipuImageParams, apiKey: string): Promise<ImageObject[]> => {
     if (!apiKey) throw new Error("Zhipu API Key is not provided.");
-    
+
+    // SAFE LAYER (Important: sizes)
+    const safe = sanitizeImageParams(ImageSource.ZHIPU_COGVIEW, params);
+
     // Zhipu CogView-3 OpenAI-Compatible Endpoint
     const url = "https://open.bigmodel.cn/api/paas/v4/images/generations";
-    
+
     const body: any = {
-        model: params.model,
-        prompt: params.prompt,
-        size: params.size,
+        model: safe.model,
+        prompt: safe.prompt,
+        size: safe.size, // Already constructed in sanitize
     };
 
     const response = await fetch(url, {
@@ -651,13 +818,207 @@ export const fetchZhipuImages = async (params: ZhipuImageParams, apiKey: string)
     }
 
     const data = await response.json();
-    return normalizeZhipuResponse(data, params);
+    return normalizeZhipuResponse(data, safe);
+};
+
+export const fetchModelScopeImages = async (params: ModelScopeImageParams, apiKey: string): Promise<ImageObject[]> => {
+    if (!apiKey) throw new Error("ModelScope Access Token is not provided.");
+
+    // SAFE LAYER
+    const safe = sanitizeImageParams(ImageSource.MODELSCOPE, params);
+
+    // Endpoint: ModelScope OpenAI Compatible API
+    // Note: Documentation suggests v1/images/generations for image gen if following OpenAI spec.
+    const url = "https://api-inference.modelscope.cn/v1/images/generations";
+
+    const body: any = {
+        model: safe.model,
+        prompt: safe.prompt,
+        n: 1, // Usually 1
+        size: safe.size || "1024x1024",
+    };
+
+    // Add Extended Parameters (ModelScope specific)
+    if (safe.negative_prompt) body.negative_prompt = safe.negative_prompt;
+    if (safe.steps) body.steps = safe.steps;
+    if (safe.guidance) body.guidance = safe.guidance;
+    if (safe.seed) body.seed = safe.seed;
+    if (safe.loras) body.loras = safe.loras;
+
+    const response = await fetch(url, {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`ModelScope API Error: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    return normalizeModelScopeResponse(data, safe);
+};
+
+export const fetchVolcEngineImages = async (params: VolcEngineImageParams, apiKey: string): Promise<ImageObject[]> => {
+    if (!apiKey) throw new Error("Volcano Engine API Key is not provided.");
+
+    // SAFE LAYER
+    const safe = sanitizeImageParams(ImageSource.VOLCENGINE, params);
+
+    // Endpoint: Dream AI (Volcano Image Generation)
+    const url = "https://dream-api.volcengine.com/v1/images/generations";
+
+    const body: any = {
+        model: safe.model || "seedream-4.0", // Default model
+        prompt: safe.prompt,
+        width: safe.width || 1024,
+        height: safe.height || 1024,
+        n: safe.n || 1,
+    };
+
+    if (safe.negative_prompt) body.negative_prompt = safe.negative_prompt;
+    if (safe.steps) body.steps = safe.steps;
+    if (safe.guidance) body.guidance = safe.guidance;
+    if (safe.seed) body.seed = safe.seed;
+    if (safe.loras) body.loras = safe.loras;
+
+    const response = await fetch(url, {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Volcano Engine API Error: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    return normalizeVolcEngineResponse(data, safe);
+};
+
+
+
+
+export const fetchOpenAIImages = async (params: any, apiKey: string): Promise<ImageObject[]> => {
+    if (!apiKey) throw new Error("OpenAI API Key is not provided.");
+
+    // SAFE LAYER (Critical: Strips negative_prompt, snaps sizes)
+    const safe = sanitizeImageParams(ImageSource.DALLE3, params);
+
+    const url = "https://api.openai.com/v1/images/generations";
+
+    const body = {
+        model: "dall-e-3",
+        prompt: safe.prompt,
+        n: 1, // DALL-E 3 only supports n=1
+        size: safe.size, // Sanitized
+        response_format: "b64_json", // Intelligent Format: Request Base64 directly
+        quality: "standard"
+    };
+
+    const response = await fetch(url, {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`OpenAI DALL-E 3 Error: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+
+    // Normalize OpenAI Response
+    return data.data.map((item: any, index: number) => {
+        const finalUrl = standardizeToUrl(item.b64_json || item.url, 'image/png');
+        return {
+            id: `dalle-${Date.now()}-${index}`,
+            url_regular: finalUrl,
+            url_full: finalUrl,
+            alt_description: safe.prompt,
+            author_name: 'OpenAI (DALL-E 3)',
+            author_url: 'https://openai.com/dall-e-3',
+            source_platform: ImageSource.DALLE3,
+            source_url: 'https://openai.com/',
+            width: 1024,
+            height: 1024,
+        };
+    });
+};
+
+export const fetchStabilityImages = async (params: any, apiKey: string): Promise<ImageObject[]> => {
+    if (!apiKey) throw new Error("Stability AI API Key is not provided.");
+
+    // SAFE LAYER
+    const safe = sanitizeImageParams(ImageSource.STABILITY, params);
+
+    // Using Stability AI v2beta API for SD3 / Core
+    const url = "https://api.stability.ai/v2beta/stable-image/generate/core";
+
+    const formData = new FormData();
+    formData.append("prompt", safe.prompt);
+    formData.append("output_format", "png");
+    // negative_prompt, aspect_ratio etc supported
+    if (safe.negative_prompt) formData.append("negative_prompt", safe.negative_prompt);
+    // Prefer aspect ratio if no specific width/height, but for now we sanitize w/h to multiples of 64
+    // If we wanted to be smarter we could map to aspect_ratio, but explicit w/h is supported if valid.
+
+    // Note: Stability Core API often prefers aspect_ratio over raw pixels, but allows raw pixel if valid.
+    // Let's rely on sanitized w/h for now.
+
+    const response = await fetch(url, {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${apiKey}`,
+            "Accept": "application/json" // Request JSON to get base64 if supported, or handled via blob? 
+            // Stability Core API returns binary by default if Accept is image/*. 
+            // If Accept is application/json, it returns { image: "base64..." }
+        },
+        body: formData,
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Stability AI Error: ${response.status} - ${errorText}`);
+    }
+
+    // Logic: Stability V2Beta Core API returns { image: "base64_string", finish_reason: "SUCCESS", ... }
+    const data = await response.json();
+    if (data.image) {
+        const finalUrl = standardizeToUrl(data.image, 'image/png');
+        return [{
+            id: `stability-${Date.now()}`,
+            url_regular: finalUrl,
+            url_full: finalUrl,
+            alt_description: safe.prompt,
+            author_name: 'Stability AI',
+            author_url: 'https://stability.ai/',
+            source_platform: ImageSource.STABILITY,
+            source_url: 'https://stability.ai/',
+            width: 1024,
+            height: 1024,
+        }];
+    } else {
+        throw new Error(`Stability AI response missing 'image' field. Raw: ${JSON.stringify(data).substring(0, 200)}`);
+    }
 };
 
 
 // --- Model Fetching Utility ---
 
-export const fetchAvailableImageModels = async (source: ImageSource, keys: ImageApiKeys): Promise<{id: string, name?: string}[]> => {
+export const fetchAvailableImageModels = async (source: ImageSource, keys: ImageApiKeys): Promise<{ id: string, name?: string }[]> => {
     switch (source) {
         case ImageSource.CLOUDFLARE:
             if (!keys.cloudflare_account_id || !keys.cloudflare_token) throw new Error("Missing Cloudflare Credentials");
@@ -683,16 +1044,82 @@ export const fetchAvailableImageModels = async (source: ImageSource, keys: Image
                 .map((m: any) => ({ id: m.id, name: m.name }));
 
         case ImageSource.REPLICATE:
-             // Replicate listing is complex (paged), we'll return a static popular list for now + fetch if user provides owner/name
-             // Or fetch user's own models? For now, static list of popular image models
-             return [
-                 { id: "black-forest-labs/flux-schnell", name: "Flux Schnell" },
-                 { id: "black-forest-labs/flux-dev", name: "Flux Dev" },
-                 { id: "stability-ai/sdxl", name: "SDXL" },
-                 { id: "stability-ai/stable-diffusion", name: "Stable Diffusion v2.1" },
-             ];
-        
+            // Replicate listing is complex (paged), we'll return a static popular list for now + fetch if user provides owner/name
+            // Or fetch user's own models? For now, static list of popular image models
+            return [
+                { id: "black-forest-labs/flux-schnell", name: "Flux Schnell" },
+                { id: "black-forest-labs/flux-dev", name: "Flux Dev" },
+                { id: "stability-ai/sdxl", name: "SDXL" },
+                { id: "stability-ai/stable-diffusion", name: "Stable Diffusion v2.1" },
+            ];
+
         default:
             return [];
     }
 }
+
+// --- Cloudflare R2 / S3 Storage Support ---
+
+// Need to import S3Client locally since it's a new dependency
+// But top-level imports are better. However, this file is huge.
+// Let's add the imports at the top if possible, OR use dynamic import if we want to save bundle size?
+// Ideally we should have added imports at the top.
+// Since I can't easily jump to top and bottom in one go without multi-replace,
+// I will just add the function here and hope the imports were added or I will add them in `ImageTextProcessor` instead?
+// No, the service needs the imports.
+// I will use `require` or dynamic import? No, this is ES module.
+// I will assume I added imports at top? NO, I DID NOT.
+// I need to add imports to the top of `imageService.ts` FIRST.
+// Actually, `uploadImageToR2` inside `ImageTextProcessor` was calling this service function.
+// This function needs `@aws-sdk/client-s3`.
+// I will proceed to add the function here, BUT I also need to add imports at the top.
+// I will use multi_replace to do both.
+
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+
+export const uploadImageToR2 = async (
+    imageBlob: Blob,
+    fileName: string,
+    account_id: string,
+    access_key_id: string,
+    secret_access_key: string,
+    bucket_name: string,
+    public_url_prefix?: string
+): Promise<string> => {
+
+    // 1. Initialize S3 Client (R2 compatible)
+    const R2 = new S3Client({
+        region: 'auto',
+        endpoint: `https://${account_id}.r2.cloudflarestorage.com`,
+        credentials: {
+            accessKeyId: access_key_id,
+            secretAccessKey: secret_access_key,
+        },
+    });
+
+    // 2. Upload
+    try {
+        const command = new PutObjectCommand({
+            Bucket: bucket_name,
+            Key: fileName,
+            Body: imageBlob,
+            ContentType: imageBlob.type || 'image/png',
+            // ACL: 'public-read', // R2 doesn't always support ACLs
+        });
+
+        await R2.send(command);
+
+        // 3. Construct URL
+        if (public_url_prefix) {
+            const prefix = public_url_prefix.endsWith('/') ? public_url_prefix : `${public_url_prefix}/`;
+            return `${prefix}${fileName}`;
+        }
+
+        // Default Fallback
+        return `r2_uploaded:${fileName}`;
+
+    } catch (error) {
+        console.error("R2 Upload Error:", error);
+        throw new Error(`Failed to upload to R2: ${(error as Error).message}`);
+    }
+};

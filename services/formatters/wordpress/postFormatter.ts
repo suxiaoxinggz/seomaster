@@ -14,12 +14,12 @@ export interface WordPressPostPayload {
  * @returns A standardized WordPressPostPayload object.
  */
 export function formatPostForWordPress(data: PostToPublish): WordPressPostPayload {
-    const { title, htmlContent, keywordContext, usedImages } = data;
+    const { title, html_content, keyword_context, used_images } = data;
 
-    let finalContent = htmlContent;
+    let finalContent = html_content;
 
-    if (keywordContext && keywordContext.trim()) {
-        const sanitizedContext = sanitizeTextForHtml(keywordContext);
+    if (keyword_context && keyword_context.trim()) {
+        const sanitizedContext = sanitizeTextForHtml(keyword_context);
         const keywordContextHtml = `
             <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; font-family: sans-serif;">
                 <strong style="display: block; margin-bottom: 10px; font-size: 1.1em; color: #1d2327;">关键词上下文参考:</strong>
@@ -31,6 +31,6 @@ export function formatPostForWordPress(data: PostToPublish): WordPressPostPayloa
     return {
         title,
         content: finalContent,
-        images: usedImages || [],
+        images: used_images || [],
     };
 }

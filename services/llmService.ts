@@ -55,7 +55,7 @@ import { secureFetch } from './api';
 async function callOpenAiCompatibleApi(
     prompt: string,
     model: Model,
-    options: { jsonMode?: boolean, stream?: boolean, onStream?: (chunk: string) => void } = {}
+    options: { jsonMode?: boolean, stream?: boolean, onStream?: (chunk: string) => void, timeout?: number } = {}
 ): Promise<string> {
     const isDeepSeekReasoner = model.id.includes('reasoner') || model.id.includes('R1');
     const isSaaSMode = !model.api_key || model.api_key.length < 5; // Heuristic: No key = SaaS Mode
@@ -85,14 +85,14 @@ async function callProxyOpenAi(prompt: string, model: Model, options: any, isDee
             const token = data.session?.access_token;
             if (!token) throw new Error("SaaS Mode requires login.");
 
-            const response = await fetch('/api/llm/openai-compatible', {
+            const response = await fetchWithRetry('/api/llm/openai-compatible', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify(payload)
-            });
+            }, 3, options.timeout || 60000);
 
             if (!response.ok) {
                 const errText = await response.text();
@@ -132,22 +132,36 @@ async function callDirectOpenAi(prompt: string, model: Model, options: any, isDe
     }
 
     try {
-        const response = await fetch(endpoint, {
+        const response = await fetchWithRetry(endpoint, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${model.api_key}`,
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify(body),
-        });
+        }, 3, options.timeout || 60000);
 
         if (!response.ok) {
             const errorText = await response.text();
             throw new Error(`Direct API Error (${model.api_provider}): ${response.status} - ${errorText}`);
         }
 
+        const contentType = response.headers.get('Content-Type') || '';
+
         if (options.stream && options.onStream) {
-            return handleStreamResponse(response, options.onStream);
+            // Check if provider actually returned a stream
+            if (contentType.includes('text/event-stream')) {
+                return handleStreamResponse(response, options.onStream);
+            } else {
+                // Fallback: Provider ignored stream=true or returned JSON error/result
+                // We treat it as a standard single-message response but trigger onStream once
+                const data = await response.json();
+                const content = data.choices?.[0]?.message?.content || '';
+                if (content) {
+                    options.onStream(content);
+                }
+                return content;
+            }
         }
 
         const data = await response.json();
@@ -199,14 +213,57 @@ async function callGeminiApi(prompt: string, model: Model, options: any) {
 
 // --- Unified LLM Caller ---
 
-async function callLlm(
+// --- Helper: Robust Fetch ---
+async function fetchWithRetry(url: string, options: any, retries = 3, timeoutMs = 60000): Promise<Response> {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeoutMs);
+    const config = { ...options, signal: controller.signal };
+
+    try {
+        const response = await fetch(url, config);
+        clearTimeout(id);
+
+        if (response.status === 429 || response.status >= 500) {
+            if (retries > 0) {
+                const waitTime = 1000 * Math.pow(2, 3 - retries); // 1s, 2s, 4s
+                console.warn(`Fetch failed (${response.status}), retrying in ${waitTime}ms...`);
+                await new Promise(r => setTimeout(r, waitTime));
+                return fetchWithRetry(url, options, retries - 1, timeoutMs);
+            }
+        }
+        return response;
+    } catch (error: any) {
+        clearTimeout(id);
+        if (retries > 0 && error.name !== 'AbortError') {
+            console.warn(`Fetch network error, retrying...`, error);
+            await new Promise(r => setTimeout(r, 1000));
+            return fetchWithRetry(url, options, retries - 1, timeoutMs);
+        }
+        throw error;
+    }
+}
+
+
+// --- Unified LLM Caller ---
+
+export async function callLlm(
     prompt: string,
     model: Model,
-    options: { jsonMode?: boolean, stream?: boolean, onStream?: (chunk: string) => void } = {}
+    options: { jsonMode?: boolean, stream?: boolean, onStream?: (chunk: string) => void, timeout?: number } = {}
 ): Promise<string> {
-    // All traffic via unified proxy
-    return callOpenAiCompatibleApi(prompt, model, options);
+    const timeout = options.timeout || 60000; // Default 60s timeout
+
+    // Override internal fetch calls in sub-functions to use fetchWithRetry (Conceptually)
+    // Actually, we must refactor callOpenAiCompatibleApi to accept timeout and use the helper.
+    // For now, let's wrap the logic or update the sub-functions. 
+
+    // We will update the sub-functions below to use fetchWithRetry.
+    return callOpenAiCompatibleApi(prompt, model, { ...options, timeout });
 }
+
+// ... logic continues ...
+// NOTE: I need to update callDirectOpenAi and callProxyOpenAi signatures to accept timeout and use fetchWithRetry
+// See next steps.
 
 
 // --- PUBLIC SERVICES ---

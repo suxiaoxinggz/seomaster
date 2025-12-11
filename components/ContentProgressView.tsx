@@ -1,4 +1,5 @@
 import React, { useContext, useState, useRef, useMemo } from 'react';
+import DOMPurify from 'dompurify';
 import { AppContext } from '../context/AppContext';
 import { Article, Project, KeywordSubProject, PublishingItem } from '../types';
 import Card from './ui/Card';
@@ -184,7 +185,11 @@ const ContentProgressView: React.FC<ContentProgressViewProps> = ({ setPage, filt
         if (!editedContent || !setPage) return;
         setNavigationPayload({
             type: 'create_images',
-            data: { content: editedContent }
+            data: {
+                content: editedContent,
+                sourceArticleId: selectedArticle?.id,
+                projectContext: selectedArticle ? { parentId: selectedArticle.parent_project_id, subId: selectedArticle.sub_project_id } : undefined
+            }
         });
         setPage('image-text');
     };
@@ -253,6 +258,16 @@ const ContentProgressView: React.FC<ContentProgressViewProps> = ({ setPage, filt
                                             <h3 className="text-xl font-bold text-white">{article.title}</h3>
                                             <p className="text-sm text-gray-400 mt-1">
                                                 项目: <span className="font-semibold text-gray-300">{parentProject?.name || 'N/A'} / {subProject?.name || 'N/A'}</span>
+                                                {article.language && (
+                                                    <span className="ml-2 px-2 py-0.5 rounded text-xs bg-blue-900/50 text-blue-400 border border-blue-800">
+                                                        {article.language}
+                                                    </span>
+                                                )}
+                                                {article.source_article_id && (
+                                                    <span className="ml-2 text-xs text-gray-500 italic">
+                                                        (Localized)
+                                                    </span>
+                                                )}
                                             </p>
                                             <div className="mt-2">
                                                 <StatusBadgeGrid destinations={article.publishedDestinations} />
@@ -331,6 +346,12 @@ const ContentProgressView: React.FC<ContentProgressViewProps> = ({ setPage, filt
                                     placeholder="在此处编辑 Markdown 内容..."
                                     autoFocus
                                 />
+                                {/* Preview Article Content */}
+                                {selectedArticle.content && (
+                                    <div className="mt-4 p-4 bg-gray-900 rounded border border-gray-700 max-h-60 overflow-y-auto prose prose-invert prose-sm">
+                                        <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(selectedArticle.content) }} />
+                                    </div>
+                                )}
                             </div>
 
                             {showPreview && (

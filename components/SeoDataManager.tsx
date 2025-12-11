@@ -49,10 +49,11 @@ const LANGUAGES = [
 
 const exportToCsv = (data: KeywordMetric[], filename: string) => {
     const headers = [
-        "Keyword", "Search Volume", "Clickstream Vol", "Trend (Last mo)", "CPC", 
-        "Competition (0-1)", "Competition Level", "Bid Low", "Bid High", "Intent", "KD"
+        "Keyword", "Search Volume", "Clickstream Vol", "Trend (Last mo)", "CPC",
+        "Competition (0-1)", "Competition Level", "Bid Low", "Bid High", "Intent", "KD",
+        "Impressions Potential (Daily)"
     ];
-    
+
     const rows = data.map(k => [
         `"${k.keyword}"`,
         k.search_volume,
@@ -64,7 +65,8 @@ const exportToCsv = (data: KeywordMetric[], filename: string) => {
         k.low_top_of_page_bid || 0,
         k.high_top_of_page_bid || 0,
         k.search_intent || '',
-        k.keyword_difficulty || ''
+        k.keyword_difficulty || '',
+        k.impressions_potential || ''
     ]);
 
     const csvContent = "\uFEFF" + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
@@ -78,11 +80,12 @@ const exportToCsv = (data: KeywordMetric[], filename: string) => {
     document.body.removeChild(link);
 };
 
+
 const exportSerpToCsv = (data: SerpAnalysisData, filename: string) => {
     const headers = [
         "Rank", "Type", "Title", "URL", "Domain", "Description"
     ];
-    
+
     const rows = data.items.map(item => [
         item.rank_absolute,
         item.type,
@@ -155,14 +158,14 @@ async function saveSnapshotHelper(
 const Sparkline: React.FC<{ data: number[], color?: string }> = ({ data, color = 'bg-blue-500' }) => {
     if (!data || data.length === 0) return null;
     const max = Math.max(...data, 1);
-    
+
     return (
         <div className="flex items-end gap-0.5 h-8 w-24" title={`Trend: ${data.join(' -> ')}`}>
             {data.map((val, i) => (
-                <div 
-                    key={i} 
+                <div
+                    key={i}
                     className={`flex-1 rounded-t-sm ${color} opacity-70 hover:opacity-100 transition-opacity`}
-                    style={{ height: `${Math.max((val / max) * 100, 10)}%` }} 
+                    style={{ height: `${Math.max((val / max) * 100, 10)}%` }}
                 ></div>
             ))}
         </div>
@@ -193,24 +196,24 @@ const SerpPreview: React.FC<{ title: string, desc: string }> = ({ title, desc })
 
 // --- SUB-COMPONENTS ---
 
-const ParameterControl: React.FC<{ 
-    params: SeoSearchParams, 
+const ParameterControl: React.FC<{
+    params: SeoSearchParams,
     setParams: (p: SeoSearchParams) => void,
     mode: 'market' | 'serp'
 }> = ({ params, setParams, mode }) => {
-    
+
     return (
         <div className="bg-gray-800/40 p-4 rounded-xl border border-gray-700/50 space-y-4">
             <div className="flex items-center gap-2 mb-2">
                 <GlobeIcon className="w-4 h-4 text-blue-400" />
                 <h4 className="text-sm font-bold text-gray-200">Targeting Parameters</h4>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Location Selector */}
                 <div>
                     <label className="block text-xs font-medium text-gray-400 mb-1.5">Location</label>
-                    <select 
+                    <select
                         className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-blue-500 outline-none appearance-none"
                         value={params.location_code}
                         onChange={(e) => setParams({ ...params, location_code: parseInt(e.target.value) })}
@@ -226,7 +229,7 @@ const ParameterControl: React.FC<{
                 {/* Language Selector */}
                 <div>
                     <label className="block text-xs font-medium text-gray-400 mb-1.5">Language</label>
-                    <select 
+                    <select
                         className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-blue-500 outline-none appearance-none"
                         value={params.language_code}
                         onChange={(e) => setParams({ ...params, language_code: e.target.value })}
@@ -248,9 +251,9 @@ const ParameterControl: React.FC<{
                             <span className="text-sm text-gray-300 font-medium">Clickstream Data</span>
                             <span className="text-[10px] text-gray-500">Real user volume calibration</span>
                         </div>
-                        <Checkbox 
-                            checked={params.include_clickstream} 
-                            onChange={e => setParams({...params, include_clickstream: e.target.checked})} 
+                        <Checkbox
+                            checked={params.include_clickstream}
+                            onChange={e => setParams({ ...params, include_clickstream: e.target.checked })}
                         />
                     </div>
                     <div className="flex items-center justify-between bg-gray-900/50 p-2 rounded-lg border border-gray-700/30">
@@ -258,10 +261,10 @@ const ParameterControl: React.FC<{
                             <span className="text-sm text-gray-300 font-medium">Search Depth</span>
                             <span className="text-[10px] text-gray-500">Discovery level (0-2)</span>
                         </div>
-                        <input 
-                            type="number" min="0" max="2" 
-                            value={params.depth} 
-                            onChange={e => setParams({...params, depth: parseInt(e.target.value)})}
+                        <input
+                            type="number" min="0" max="2"
+                            value={params.depth}
+                            onChange={e => setParams({ ...params, depth: parseInt(e.target.value) })}
                             className="w-12 bg-gray-800 border border-gray-600 rounded text-center text-sm py-1"
                         />
                     </div>
@@ -273,14 +276,14 @@ const ParameterControl: React.FC<{
                     <div>
                         <label className="block text-xs font-medium text-gray-400 mb-1.5">Device</label>
                         <div className="flex bg-gray-900 rounded-lg p-1 border border-gray-700">
-                            <button 
-                                onClick={() => setParams({...params, device: 'desktop'})}
+                            <button
+                                onClick={() => setParams({ ...params, device: 'desktop' })}
                                 className={`flex-1 py-1 text-xs rounded-md transition-colors ${params.device === 'desktop' ? 'bg-gray-700 text-white shadow-sm' : 'text-gray-500 hover:text-gray-300'}`}
                             >
                                 Desktop
                             </button>
-                            <button 
-                                onClick={() => setParams({...params, device: 'mobile'})}
+                            <button
+                                onClick={() => setParams({ ...params, device: 'mobile' })}
                                 className={`flex-1 py-1 text-xs rounded-md transition-colors ${params.device === 'mobile' ? 'bg-gray-700 text-white shadow-sm' : 'text-gray-500 hover:text-gray-300'}`}
                             >
                                 Mobile
@@ -289,7 +292,7 @@ const ParameterControl: React.FC<{
                     </div>
                     <div>
                         <label className="block text-xs font-medium text-gray-400 mb-1.5">Operating System</label>
-                        <select 
+                        <select
                             className="w-full bg-gray-900 border border-gray-600 rounded-lg px-2 py-1.5 text-sm text-white focus:ring-2 focus:ring-blue-500 outline-none"
                             value={params.os}
                             onChange={(e) => setParams({ ...params, os: e.target.value as any })}
@@ -328,7 +331,7 @@ const AdvancedContentSettings: React.FC<{
 
     return (
         <div className="mt-4 border border-gray-700 rounded-lg overflow-hidden">
-            <button 
+            <button
                 className="w-full flex items-center justify-between p-3 bg-gray-800/50 hover:bg-gray-800 text-xs font-bold text-gray-400 uppercase tracking-wider transition-colors"
                 onClick={() => setIsOpen(!isOpen)}
             >
@@ -342,27 +345,27 @@ const AdvancedContentSettings: React.FC<{
                         <h5 className="text-xs font-semibold text-blue-400">Vocabulary Control</h5>
                         <div>
                             <label className="block text-xs font-medium text-gray-400 mb-1">Include Words</label>
-                            <Input 
-                                value={props.includeWords} 
-                                onChange={e => props.setIncludeWords(e.target.value)} 
+                            <Input
+                                value={props.includeWords}
+                                onChange={e => props.setIncludeWords(e.target.value)}
                                 placeholder="e.g. ai, future (comma separated)"
                                 className="text-xs"
                             />
                         </div>
                         <div>
                             <label className="block text-xs font-medium text-gray-400 mb-1">Avoid Words</label>
-                            <Input 
-                                value={props.avoidWords} 
-                                onChange={e => props.setAvoidWords(e.target.value)} 
+                            <Input
+                                value={props.avoidWords}
+                                onChange={e => props.setAvoidWords(e.target.value)}
                                 placeholder="e.g. very, just (comma separated)"
                                 className="text-xs"
                             />
                         </div>
                         <div>
                             <label className="block text-xs font-medium text-gray-400 mb-1">Avoid Starting Words</label>
-                            <Input 
-                                value={props.avoidStartingWords} 
-                                onChange={e => props.setAvoidStartingWords(e.target.value)} 
+                            <Input
+                                value={props.avoidStartingWords}
+                                onChange={e => props.setAvoidStartingWords(e.target.value)}
                                 placeholder="e.g. But, And (comma separated)"
                                 className="text-xs"
                             />
@@ -385,8 +388,8 @@ const AdvancedContentSettings: React.FC<{
                                     <label className="text-xs text-gray-400">Creativity Index</label>
                                     <span className="text-xs text-blue-400">{props.creativity}</span>
                                 </div>
-                                <input 
-                                    type="range" min="0" max="1" step="0.1" 
+                                <input
+                                    type="range" min="0" max="1" step="0.1"
                                     value={props.creativity} onChange={e => props.setCreativity(parseFloat(e.target.value))}
                                     className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer"
                                 />
@@ -467,11 +470,11 @@ const MarketIntelligence: React.FC<{ config: SeoConfig, initialData?: { query: s
                                 <div className="flex justify-between items-center mb-4">
                                     <h3 className="font-bold text-white">Overview</h3>
                                     <div className="flex gap-2">
-                                        <Button size="sm" variant="secondary" onClick={handleSave} isLoading={isSaving}><CloudIcon className="w-4 h-4 mr-1"/> Save</Button>
+                                        <Button size="sm" variant="secondary" onClick={handleSave} isLoading={isSaving}><CloudIcon className="w-4 h-4 mr-1" /> Save</Button>
                                         <Button size="sm" variant="secondary" onClick={() => exportToCsv(results.overview, 'overview.csv')}><DownloadIcon className="w-4 h-4 mr-1" /> CSV</Button>
                                     </div>
                                 </div>
-                                <div className="overflow-x-auto"><table className="w-full text-sm text-left"><thead className="text-xs text-gray-400 uppercase bg-gray-900/50"><tr><th className="px-4 py-3">Keyword</th><th className="px-4 py-3">Vol</th><th className="px-4 py-3">Trend</th><th className="px-4 py-3">KD</th><th className="px-4 py-3">CPC</th></tr></thead><tbody>{results.overview.map((k, i) => (<tr key={i} className="border-b border-gray-800"><td className="px-4 py-3">{k.keyword}</td><td className="px-4 py-3">{formatVolume(k.search_volume)}</td><td className="px-4 py-3"><Sparkline data={k.trend_history}/></td><td className="px-4 py-3"><span className={`px-2 py-0.5 rounded text-xs border ${getKdColor(k.keyword_difficulty || 0)}`}>{k.keyword_difficulty}</span></td><td className="px-4 py-3">${k.cpc}</td></tr>))}</tbody></table></div>
+                                <div className="overflow-x-auto"><table className="w-full text-sm text-left"><thead className="text-xs text-gray-400 uppercase bg-gray-900/50"><tr><th className="px-4 py-3">Keyword</th><th className="px-4 py-3">Vol</th><th className="px-4 py-3">Trend</th><th className="px-4 py-3">KD</th><th className="px-4 py-3">CPC</th></tr></thead><tbody>{results.overview.map((k, i) => (<tr key={i} className="border-b border-gray-800"><td className="px-4 py-3">{k.keyword}</td><td className="px-4 py-3">{formatVolume(k.search_volume)}</td><td className="px-4 py-3"><Sparkline data={k.trend_history} /></td><td className="px-4 py-3"><span className={`px-2 py-0.5 rounded text-xs border ${getKdColor(k.keyword_difficulty || 0)}`}>{k.keyword_difficulty}</span></td><td className="px-4 py-3">${k.cpc}</td></tr>))}</tbody></table></div>
                             </Card>
                         </div>
                     ) : <div className="h-full flex items-center justify-center text-gray-600 border-2 border-dashed border-gray-800 rounded-xl">Enter keywords to analyze.</div>}
@@ -515,7 +518,25 @@ const SerpAnalysis: React.FC<{ config: SeoConfig, initialData?: { query: string,
             <div className="grid grid-cols-12 gap-6 min-h-0 flex-1">
                 <div className="col-span-4 flex flex-col gap-4 overflow-y-auto">
                     <Card className="flex-1 flex flex-col bg-gray-800/50">
-                        <Input label="Target Keyword" value={keyword} onChange={e => setKeyword(e.target.value)} className="mb-4" />
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-300 mb-2">Target Keyword</label>
+                            <div className="relative group">
+                                <input
+                                    type="text"
+                                    value={keyword}
+                                    onChange={e => setKeyword(e.target.value)}
+                                    placeholder="e.g. 'best running shoes'"
+                                    className="w-full bg-[#0d1117] border border-gray-600 text-white text-lg rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-600 shadow-inner transition-all group-hover:border-gray-500"
+                                />
+                                <div className="absolute right-3 top-3.5 text-gray-600">
+                                    <SearchIcon className="w-5 h-5" />
+                                </div>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-2 flex justify-between">
+                                <span>Enter a keyword to analyze top results.</span>
+                                <span className="text-[10px] bg-blue-900/30 text-blue-400 px-1.5 py-0.5 rounded border border-blue-800/50">Live Mode</span>
+                            </p>
+                        </div>
                         <ParameterControl params={params} setParams={setParams} mode="serp" />
                         <Button onClick={handleRun} isLoading={loading} className="w-full mt-4"><SearchIcon className="w-4 h-4 mr-2" />Fetch SERP</Button>
                     </Card>
@@ -526,8 +547,8 @@ const SerpAnalysis: React.FC<{ config: SeoConfig, initialData?: { query: string,
                             <div className="flex justify-between items-center mb-2">
                                 <h3 className="font-bold text-white">Top 20 Results</h3>
                                 <div className="flex gap-2">
-                                    <Button size="sm" variant="secondary" onClick={handleSave} isLoading={isSaving}><CloudIcon className="w-4 h-4 mr-1"/> Save</Button>
-                                    <Button size="sm" variant="secondary" onClick={() => exportSerpToCsv(result, 'serp.csv')}><DownloadIcon className="w-4 h-4 mr-1"/> CSV</Button>
+                                    <Button size="sm" variant="secondary" onClick={handleSave} isLoading={isSaving}><CloudIcon className="w-4 h-4 mr-1" /> Save</Button>
+                                    <Button size="sm" variant="secondary" onClick={() => exportSerpToCsv(result, 'serp.csv')}><DownloadIcon className="w-4 h-4 mr-1" /> CSV</Button>
                                 </div>
                             </div>
                             {result.items.map((item, i) => (<Card key={i} className="p-4"><div className="flex items-start gap-4"><span className="text-2xl font-bold text-gray-500">#{item.rank_absolute}</span><div className="flex-1"><a href={item.url} target="_blank" className="text-blue-400 hover:underline block">{item.title}</a><p className="text-sm text-gray-400">{item.description}</p></div></div></Card>))}
@@ -572,7 +593,7 @@ const AiVisibility: React.FC<{ config: SeoConfig, initialData?: { query: string,
             {result && (
                 <Card className="p-6 relative">
                     <div className="absolute top-4 right-4">
-                        <Button size="sm" variant="secondary" onClick={handleSave} isLoading={isSaving}><CloudIcon className="w-4 h-4 mr-1"/> Save</Button>
+                        <Button size="sm" variant="secondary" onClick={handleSave} isLoading={isSaving}><CloudIcon className="w-4 h-4 mr-1" /> Save</Button>
                     </div>
                     <div className="text-4xl font-bold text-white mb-2">{result.mentions_count} Mentions</div>
                     <p className="text-gray-300">{result.summary}</p>
@@ -586,26 +607,26 @@ const AiVisibility: React.FC<{ config: SeoConfig, initialData?: { query: string,
 const ContentEngine: React.FC<{ config: SeoConfig }> = ({ config }) => {
     const [mode, setMode] = useState<'generate' | 'paraphrase' | 'grammar' | 'summary' | 'meta_tags' | 'sub_topics'>('generate');
     const [subMode, setSubMode] = useState<'text' | 'topic'>('text'); // For generate vs generate_text
-    
+
     // Standard Inputs
     const [inputText, setInputText] = useState('');
     const [topic, setTopic] = useState('');
     const [wordCount, setWordCount] = useState(500);
     const [maxTokens, setMaxTokens] = useState(200);
     const [targetLang, setTargetLang] = useState('en');
-    
+
     // Advanced Constraints
     const [includeWords, setIncludeWords] = useState('');
     const [avoidWords, setAvoidWords] = useState('');
     const [avoidStartingWords, setAvoidStartingWords] = useState('');
-    
+
     // Advanced Parameters
     const [creativity, setCreativity] = useState(0.8);
     const [useAdvancedParams, setUseAdvancedParams] = useState(false); // Toggle between creativity vs detailed
     const [topK, setTopK] = useState(40);
     const [topP, setTopP] = useState(0.9);
     const [temperature, setTemperature] = useState(0.7);
-    
+
     // Outputs
     const [result, setResult] = useState<ContentGenResult | null>(null);
     const [loading, setLoading] = useState(false);
@@ -616,7 +637,7 @@ const ContentEngine: React.FC<{ config: SeoConfig }> = ({ config }) => {
         if (requiresTopic && !topic) {
             toast.error("Please enter a topic."); return;
         }
-        
+
         const requiresText = (mode === 'generate' && subMode === 'text') || ['paraphrase', 'grammar', 'summary', 'meta_tags'].includes(mode);
         if (requiresText && !inputText) {
             toast.error("Please enter input text."); return;
@@ -636,7 +657,7 @@ const ContentEngine: React.FC<{ config: SeoConfig }> = ({ config }) => {
             else if (mode === 'sub_topics') apiMode = 'generate_sub_topics';
             else apiMode = 'paraphrase';
 
-            const params: ContentGenParams = { 
+            const params: ContentGenParams = {
                 mode: apiMode,
             };
 
@@ -653,12 +674,12 @@ const ContentEngine: React.FC<{ config: SeoConfig }> = ({ config }) => {
             if (apiMode === 'generate_text') {
                 params.topic = topic;
                 params.word_count = wordCount;
-                if(includeWords) params.include_words = includeWords.split(',').map(s => s.trim());
+                if (includeWords) params.include_words = includeWords.split(',').map(s => s.trim());
             } else if (apiMode === 'generate') {
                 params.text = inputText;
                 params.max_tokens = maxTokens;
-                if(avoidWords) params.avoid_words = avoidWords.split(',').map(s => s.trim());
-                if(avoidStartingWords) params.avoid_starting_words = avoidStartingWords.split(',').map(s => s.trim());
+                if (avoidWords) params.avoid_words = avoidWords.split(',').map(s => s.trim());
+                if (avoidStartingWords) params.avoid_starting_words = avoidStartingWords.split(',').map(s => s.trim());
             } else if (apiMode === 'check_grammar') {
                 params.text = inputText;
                 params.language_code = targetLang;
@@ -726,11 +747,11 @@ const ContentEngine: React.FC<{ config: SeoConfig }> = ({ config }) => {
                             ) : (
                                 <div className="flex-1 flex flex-col">
                                     <label className="block text-sm font-medium text-gray-300 mb-1">
-                                        {mode === 'generate' ? 'Start Text / Prompt' : 
-                                         mode === 'meta_tags' ? 'Content for Meta Generation' : 
-                                         'Input Text'}
+                                        {mode === 'generate' ? 'Start Text / Prompt' :
+                                            mode === 'meta_tags' ? 'Content for Meta Generation' :
+                                                'Input Text'}
                                     </label>
-                                    <textarea 
+                                    <textarea
                                         className="w-full flex-1 bg-gray-900 border border-gray-600 rounded-md p-3 text-sm focus:ring-2 focus:ring-blue-500 resize-none min-h-[150px]"
                                         placeholder={mode === 'meta_tags' ? "Paste your article content here..." : "Enter your text here..."}
                                         value={inputText}
@@ -758,7 +779,7 @@ const ContentEngine: React.FC<{ config: SeoConfig }> = ({ config }) => {
                                 {mode === 'grammar' && (
                                     <div>
                                         <label className="block text-xs font-medium text-gray-400 mb-1">Language</label>
-                                        <select 
+                                        <select
                                             className="w-full bg-gray-900 border border-gray-600 rounded px-2 py-1 text-sm text-white"
                                             value={targetLang} onChange={e => setTargetLang(e.target.value)}
                                         >
@@ -766,9 +787,9 @@ const ContentEngine: React.FC<{ config: SeoConfig }> = ({ config }) => {
                                         </select>
                                     </div>
                                 )}
-                                
+
                                 {mode !== 'summary' && mode !== 'grammar' && (
-                                    <AdvancedContentSettings 
+                                    <AdvancedContentSettings
                                         includeWords={includeWords} setIncludeWords={setIncludeWords}
                                         avoidWords={avoidWords} setAvoidWords={setAvoidWords}
                                         avoidStartingWords={avoidStartingWords} setAvoidStartingWords={setAvoidStartingWords}
@@ -828,7 +849,7 @@ const ContentEngine: React.FC<{ config: SeoConfig }> = ({ config }) => {
                                             </span>
                                         </div>
                                     </div>
-                                    
+
                                     <div className="mb-6">
                                         <SerpPreview title={result.meta_title || ''} desc={result.meta_description || ''} />
                                     </div>
@@ -861,9 +882,9 @@ const ContentEngine: React.FC<{ config: SeoConfig }> = ({ config }) => {
                                 <Card>
                                     <div className="flex justify-between items-center mb-4">
                                         <h3 className="font-bold text-white">Generated Sub-Topics</h3>
-                                        <Button 
-                                            size="sm" 
-                                            variant="secondary" 
+                                        <Button
+                                            size="sm"
+                                            variant="secondary"
                                             onClick={() => downloadText(result.sub_topics?.join('\n') || '', 'sub-topics.txt')}
                                         >
                                             <DownloadIcon className="w-4 h-4 mr-2" /> Export List
@@ -873,8 +894,8 @@ const ContentEngine: React.FC<{ config: SeoConfig }> = ({ config }) => {
                                         {result.sub_topics.map((topic, i) => (
                                             <div key={i} className="flex items-center justify-between p-3 bg-gray-900 rounded border border-gray-700 hover:border-blue-500/50 transition-colors group">
                                                 <span className="text-gray-300">{topic}</span>
-                                                <button 
-                                                    onClick={() => copyToClipboard(topic)} 
+                                                <button
+                                                    onClick={() => copyToClipboard(topic)}
                                                     className="opacity-0 group-hover:opacity-100 text-xs bg-gray-800 px-2 py-1 rounded text-blue-400 hover:text-white transition-opacity"
                                                 >
                                                     Copy
@@ -915,7 +936,7 @@ const ContentEngine: React.FC<{ config: SeoConfig }> = ({ config }) => {
                                         <h3 className="font-bold text-green-400 mb-2">Corrected</h3>
                                         <div className="whitespace-pre-wrap text-gray-200 text-sm flex-1">{result.corrected_text}</div>
                                     </Card>
-                                    
+
                                     {result.grammar_errors && result.grammar_errors.length > 0 && (
                                         <div className="col-span-1 md:col-span-2">
                                             <h3 className="font-bold text-red-400 mb-2">Errors Found ({result.grammar_errors.length})</h3>
@@ -927,7 +948,7 @@ const ContentEngine: React.FC<{ config: SeoConfig }> = ({ config }) => {
                                                             <span className="text-gray-300 font-medium">{err.description}</span>
                                                         </div>
                                                         <div className="mt-1 flex items-center text-green-400 text-xs">
-                                                            <span className="text-gray-500 mr-2">Suggestion:</span> 
+                                                            <span className="text-gray-500 mr-2">Suggestion:</span>
                                                             <span className="font-mono bg-green-900/30 px-1 rounded">{err.suggestions.join(', ')}</span>
                                                         </div>
                                                     </div>
@@ -966,7 +987,7 @@ const HistoryView: React.FC<{ onLoad: (snapshot: SeoSnapshot) => void }> = ({ on
                 .select('*')
                 .eq('user_id', session.user.id)
                 .order('created_at', { ascending: false });
-            
+
             if (!error && data) setSnapshots(data as any);
             setIsLoading(false);
         };
@@ -974,9 +995,10 @@ const HistoryView: React.FC<{ onLoad: (snapshot: SeoSnapshot) => void }> = ({ on
     }, [supabase, session]);
 
     const handleDelete = async (id: string) => {
-        if (!supabase) return;
+        if (!supabase || !session) return;
         if (!confirm('Are you sure?')) return;
-        const { error } = await supabase.from('seo_snapshots').delete().eq('id', id);
+        // Strict Multi-Tenancy Enforcement
+        const { error } = await supabase.from('seo_snapshots').delete().eq('id', id).eq('user_id', session.user.id);
         if (!error) setSnapshots(prev => prev.filter(s => s.id !== id));
     };
 
@@ -992,11 +1014,10 @@ const HistoryView: React.FC<{ onLoad: (snapshot: SeoSnapshot) => void }> = ({ on
                         <Card key={snap.id} className="p-4 flex justify-between items-center bg-gray-800 hover:bg-gray-750">
                             <div>
                                 <div className="flex items-center gap-2">
-                                    <span className={`text-xs px-2 py-0.5 rounded uppercase font-bold ${
-                                        snap.type === 'market_intelligence' ? 'bg-blue-900 text-blue-300' :
+                                    <span className={`text-xs px-2 py-0.5 rounded uppercase font-bold ${snap.type === 'market_intelligence' ? 'bg-blue-900 text-blue-300' :
                                         snap.type === 'serp_analysis' ? 'bg-orange-900 text-orange-300' :
-                                        'bg-purple-900 text-purple-300'
-                                    }`}>
+                                            'bg-purple-900 text-purple-300'
+                                        }`}>
                                         {snap.type.replace('_', ' ')}
                                     </span>
                                     <span className="text-gray-500 text-xs">{new Date(snap.created_at).toLocaleString()}</span>
@@ -1007,7 +1028,7 @@ const HistoryView: React.FC<{ onLoad: (snapshot: SeoSnapshot) => void }> = ({ on
                                 <Button size="sm" variant="secondary" onClick={() => onLoad(snap)} className="text-green-400 hover:text-white hover:bg-green-600/20">
                                     <PublishIcon className="w-4 h-4 mr-1 transform rotate-90" /> Load
                                 </Button>
-                                <Button size="sm" variant="danger" onClick={() => handleDelete(snap.id)}><TrashIcon className="w-4 h-4"/></Button>
+                                <Button size="sm" variant="danger" onClick={() => handleDelete(snap.id)}><TrashIcon className="w-4 h-4" /></Button>
                             </div>
                         </Card>
                     ))}
@@ -1020,7 +1041,7 @@ const HistoryView: React.FC<{ onLoad: (snapshot: SeoSnapshot) => void }> = ({ on
 const SeoDataManager: React.FC = () => {
     const context = useContext(AppContext);
     const { navigationPayload, setNavigationPayload } = context || {};
-    
+
     const [activeTab, setActiveTab] = useState<'market' | 'serp' | 'ai' | 'content' | 'history'>('market');
     const [restoredData, setRestoredData] = useState<{ type: string, data: { query: string, params: any, result: any } } | null>(null);
 
@@ -1044,7 +1065,7 @@ const SeoDataManager: React.FC = () => {
             'serp_analysis': 'serp',
             'ai_visibility': 'ai'
         };
-        
+
         const targetTab = tabMap[snapshot.type];
         if (targetTab) {
             setActiveTab(targetTab as any);
@@ -1083,11 +1104,10 @@ const SeoDataManager: React.FC = () => {
                     <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id as any)}
-                        className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-all ${
-                            activeTab === tab.id 
-                            ? 'bg-blue-600 text-white shadow-lg' 
+                        className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === tab.id
+                            ? 'bg-blue-600 text-white shadow-lg'
                             : 'text-gray-400 hover:text-white hover:bg-gray-700'
-                        }`}
+                            }`}
                     >
                         {tab.icon}
                         {tab.label}

@@ -71,6 +71,10 @@ const TranslationSettingsModal: React.FC<{
                     {renderField("Microsoft Key", TranslationProvider.MICROSOFT, "Key 1 or Key 2", "https://azure.microsoft.com/en-us/services/cognitive-services/translator/")}
                     {renderField("Microsoft Region", "microsoft_region", "e.g., eastus, global", "#")}
                 </div>
+                <div className="grid grid-cols-2 gap-4 mt-4 border-t border-gray-700 pt-4">
+                    {renderField("LibreTranslate URL", "libre_base_url", "https://libretranslate.com", "https://github.com/LibreTranslate/LibreTranslate")}
+                    {renderField("LibreTranslate Key (Optional)", "libre_api_key", "API Key if required", "#")}
+                </div>
                 <div className="flex justify-end gap-2 mt-6">
                     <Button variant="secondary" onClick={onClose}>Cancel</Button>
                     <Button onClick={() => { onSave(localKeys); onClose(); }}>Save Keys</Button>
@@ -191,6 +195,8 @@ export const LocalizationView: React.FC = () => {
                 sub_project_id: sourceArticle.sub_project_id,
                 created_at: new Date().toISOString(),
                 model_used: `${providerName} (Translation)`,
+                language: targetLanguage,
+                source_article_id: sourceArticle.id,
                 published_destinations: [],
             };
 
@@ -241,6 +247,7 @@ export const LocalizationView: React.FC = () => {
                                     <option value={TranslationProvider.DEEPL}>DeepL API (Pro/Free)</option>
                                     <option value={TranslationProvider.GOOGLE}>Google Cloud Translate</option>
                                     <option value={TranslationProvider.MICROSOFT}>Microsoft Translator</option>
+                                    <option value={TranslationProvider.LIBRE}>LibreTranslate (Self-Hosted/Free)</option>
                                 </Select>
                             </div>
 

@@ -218,16 +218,16 @@ export const ImageLibraryView: React.FC<ImageLibraryViewProps> = ({ filterProjec
 
         const newQueueItems: PublishingItem[] = setsToAdd.map(set => ({
             id: `queue-imageset-${set.id}-${Date.now()}`,
-            sourceId: set.id,
-            sourceType: 'image_set',
+            source_id: set.id,
+            source_type: 'image_set',
             name: set.name,
             status: 'queued',
             log: '等待发布',
         }));
 
         setPublishingQueue(prev => {
-            const existingIds = new Set(prev.map(p => p.sourceId));
-            const uniqueNewItems = newQueueItems.filter(item => !existingIds.has(item.sourceId));
+            const existingIds = new Set(prev.map(p => p.source_id));
+            const uniqueNewItems = newQueueItems.filter(item => !existingIds.has(item.source_id));
             return [...prev, ...uniqueNewItems];
         });
         setSelectedSets(new Set());

@@ -49,7 +49,7 @@ const ModelSettings: React.FC = () => {
     const context = useContext(AppContext);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingModel, setEditingModel] = useState<Partial<Model> | null>(null);
-    const [fetchedModels, setFetchedModels] = useState<{ id: string }[]>([]);
+    const [fetchedModels, setFetchedModels] = useState<{ id: string, name?: string }[]>([]);
     const [isFetchingModels, setIsFetchingModels] = useState(false);
     const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
     const [testMessage, setTestMessage] = useState<string>('');
@@ -89,9 +89,10 @@ const ModelSettings: React.FC = () => {
             case ApiProvider.MOONSHOT: baseURL = 'https://api.moonshot.cn/v1'; break;
             case ApiProvider.YI: baseURL = 'https://api.lingyiwanwu.com/v1'; break;
             case ApiProvider.MISTRAL: baseURL = 'https://api.mistral.ai/v1'; break;
-            case ApiProvider.TOGETHER: baseURL = 'https://api.together.xyz/v1'; break;
+            case ApiProvider.TOGETHER: baseURL = 'https://api.together.ai/v1'; break;
             case ApiProvider.OPENROUTER: baseURL = 'https://openrouter.ai/api/v1'; break;
             case ApiProvider.MODELSCOPE: baseURL = 'https://api-inference.modelscope.cn/v1'; break;
+            case ApiProvider.VOLCENGINE: baseURL = 'https://ark-api.volcengine.com/v3'; break; // Volcano Ark
             case ApiProvider.OPENAI: baseURL = 'https://api.openai.com/v1'; break;
             case ApiProvider.GEMINI: baseURL = 'https://generativelanguage.googleapis.com/v1beta/openai/'; break;
         }
@@ -162,7 +163,7 @@ const ModelSettings: React.FC = () => {
 
     const handleSaveModel = async () => {
         if (!editingModel) return;
-        if (!editingModel.nickname) { alert("Please provide a Display Name."); return; }
+        // if (!editingModel.nickname) { alert("Please provide a Display Name."); return; } // Removed for Smart Default
         if (!editingModel.id) { alert("Model ID is required."); return; }
 
         try {
@@ -172,7 +173,7 @@ const ModelSettings: React.FC = () => {
             const finalModel: Model = {
                 id: editingModel.id,
                 user_id: session?.user?.id || 'guest',
-                nickname: editingModel.nickname!,
+                nickname: editingModel.nickname || editingModel.id, // Smart Default: Use ID if no nickname
                 api_key: editingModel.api_key || '',
                 base_url: editingModel.base_url || '',
                 version: editingModel.version || '',
@@ -227,14 +228,32 @@ const ModelSettings: React.FC = () => {
     };
 
     const handleSetDefault = async (id: string) => {
+        const previousDefaultId = defaultModelId;
+
+        // Optimistic update to prevent UI jump/reset
+        setModels(prev => prev.map(m => ({
+            ...m,
+            is_default: m.id === id
+        })));
         setDefaultModelId(id);
+
         if (session && supabase) {
             try {
+                // Background sync
                 await (supabase.from('models') as any).update({ is_default: false }).eq('user_id', session.user.id);
-                await (supabase.from('models') as any).update({ is_default: true }).eq('id', id);
-                await fetchData();
+                const { error } = await (supabase.from('models') as any).update({ is_default: true }).eq('id', id);
+
+                if (error) throw error;
             } catch (error) {
                 console.error("Failed to sync default model to DB", error);
+
+                // Rollback on error
+                setDefaultModelId(previousDefaultId);
+                setModels(prev => prev.map(m => ({
+                    ...m,
+                    is_default: m.id === previousDefaultId
+                })));
+                alert("Failed to save default model selection. Reverting changes.");
             }
         }
     }
@@ -316,7 +335,7 @@ const ModelSettings: React.FC = () => {
         );
     };
 
-    const isCompatibleProtocol = [ApiProvider.OPENAI_COMPATIBLE, ApiProvider.OPENAI, ApiProvider.DEEPSEEK, ApiProvider.GEMINI, ApiProvider.OPENROUTER, ApiProvider.MODELSCOPE, ApiProvider.NEBIUS, ApiProvider.GROQ, ApiProvider.SILICONFLOW, ApiProvider.ZHIPU, ApiProvider.MOONSHOT, ApiProvider.YI, ApiProvider.MISTRAL, ApiProvider.TOGETHER].includes(editingModel?.api_provider as ApiProvider);
+    const isCompatibleProtocol = [ApiProvider.OPENAI_COMPATIBLE, ApiProvider.OPENAI, ApiProvider.DEEPSEEK, ApiProvider.GEMINI, ApiProvider.OPENROUTER, ApiProvider.MODELSCOPE, ApiProvider.VOLCENGINE, ApiProvider.NEBIUS, ApiProvider.GROQ, ApiProvider.SILICONFLOW, ApiProvider.ZHIPU, ApiProvider.MOONSHOT, ApiProvider.YI, ApiProvider.MISTRAL, ApiProvider.TOGETHER].includes(editingModel?.api_provider as ApiProvider);
 
     // Quick Chips for common models based on provider
     const getQuickChips = (provider: ApiProvider) => {
@@ -326,6 +345,7 @@ const ModelSettings: React.FC = () => {
             case ApiProvider.ANTHROPIC: return ['claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022'];
             case ApiProvider.DEEPSEEK: return ['deepseek-chat', 'deepseek-reasoner'];
             case ApiProvider.GROQ: return ['llama-3.3-70b-versatile', 'mixtral-8x7b-32768'];
+            case ApiProvider.VOLCENGINE: return ['volc-gpt-4', 'volc-gpt-3.5-turbo', 'doubao-pro-32k']; // Volcano Chips
             default: return [];
         }
     };
@@ -388,7 +408,7 @@ const ModelSettings: React.FC = () => {
                                 <div className="mt-2 text-xs text-gray-500">
                                     Base URL (Optional):
                                     <input
-                                        className="bg-transparent border-b border-gray-700 ml-2 focus:outline-none focus:border-blue-500 w-64"
+                                        className="bg-transparent border-b border-gray-700 ml-2 focus:outline-none focus:border-blue-500 w-64 text-white"
                                         placeholder="https://api.dataforseo.com/v3"
                                         value={seoConfig.baseUrl || ''}
                                         onChange={(e) => setSeoConfig({ ...seoConfig, baseUrl: e.target.value })}
@@ -444,7 +464,7 @@ const ModelSettings: React.FC = () => {
                         <div className="col-span-2">
                             <Select
                                 label="API Provider Protocol"
-                                value={editingModel?.apiProvider || ''}
+                                value={editingModel?.api_provider || ''}
                                 onChange={(e) => handleProviderChange(e.target.value as ApiProvider)}
                             >
                                 <option value={ApiProvider.OPENAI_COMPATIBLE}>OpenAI Compatible (Generic)</option>
@@ -459,6 +479,7 @@ const ModelSettings: React.FC = () => {
                                 <option value={ApiProvider.DEEPSEEK}>DeepSeek</option>
                                 <option value={ApiProvider.NEBIUS}>Nebius AI</option>
                                 <option value={ApiProvider.MODELSCOPE}>ModelScope (MaaS)</option>
+                                <option value={ApiProvider.VOLCENGINE}>Volcano Engine (Ark)</option>
                                 <option value={ApiProvider.ANTHROPIC}>Anthropic (Claude)</option>
                                 <option value={ApiProvider.OPENAI}>OpenAI Official</option>
                                 <option value={ApiProvider.GEMINI}>Google Gemini</option>
@@ -470,19 +491,19 @@ const ModelSettings: React.FC = () => {
                         <Input
                             label="Base URL"
                             placeholder="https://api.deepseek.com/v1"
-                            value={editingModel?.baseURL || ''}
-                            onChange={(e) => setEditingModel({ ...editingModel, baseURL: e.target.value })}
+                            value={editingModel?.base_url || ''}
+                            onChange={(e) => setEditingModel({ ...editingModel, base_url: e.target.value })}
                         />
                     )}
 
                     <Input
                         label="API Key"
                         type="password"
-                        placeholder={editingModel?.apiProvider === ApiProvider.GEMINI ? "Leave empty to use System Key (Free)" : "sk-..."}
-                        value={editingModel?.apiKey || ''}
-                        onChange={(e) => setEditingModel({ ...editingModel, apiKey: e.target.value })}
+                        placeholder={editingModel?.api_provider === ApiProvider.GEMINI ? "Leave empty to use System Key (Free)" : "sk-..."}
+                        value={editingModel?.api_key || ''}
+                        onChange={(e) => setEditingModel({ ...editingModel, api_key: e.target.value })}
                     />
-                    {editingModel?.apiProvider === ApiProvider.GEMINI && (
+                    {editingModel?.api_provider === ApiProvider.GEMINI && (
                         <p className="text-xs text-blue-300 mt-1">
                             * Gemini "Smart Mode": Enter your own key to bypass limits, or leave empty to use our secure server-side key.
                         </p>
@@ -506,7 +527,22 @@ const ModelSettings: React.FC = () => {
                                         Enter Manually
                                     </button>
                                 </div>
-                                <Select value={editingModel?.id || ''} onChange={(e) => setEditingModel({ ...editingModel, id: e.target.value })}>
+                                <Select
+                                    value={editingModel?.id || ''}
+                                    onChange={(e) => {
+                                        const newId = e.target.value;
+                                        const selectedModel = fetchedModels.find(m => m.id === newId);
+
+                                        // Auto-sync nickname if it's empty or looks like a previous ID
+                                        const shouldUpdateName = !editingModel?.nickname || editingModel.nickname === editingModel.id;
+
+                                        setEditingModel({
+                                            ...editingModel,
+                                            id: newId,
+                                            nickname: shouldUpdateName ? (selectedModel?.name || newId) : editingModel?.nickname
+                                        });
+                                    }}
+                                >
                                     {fetchedModels.map(m => <option key={m.id} value={m.id}>{m.id}</option>)}
                                 </Select>
                             </div>
@@ -550,7 +586,7 @@ const ModelSettings: React.FC = () => {
 
                     <div className="flex justify-end space-x-3 pt-6 border-t border-gray-700">
                         <Button variant="secondary" onClick={handleCloseModal}>Cancel</Button>
-                        <Button variant="secondary" onClick={handleTestConnection} isLoading={testStatus === 'testing'} disabled={!editingModel?.apiKey || !editingModel?.id}>
+                        <Button variant="secondary" onClick={handleTestConnection} isLoading={testStatus === 'testing'} disabled={!editingModel?.api_key || !editingModel?.id}>
                             <LightningIcon className="w-4 h-4 mr-2" />
                             Test Connection
                         </Button>

@@ -21,7 +21,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { LocalizationView } from './components/LocalizationView';
 import SeoDataManager from './components/SeoDataManager';
 import SeoStrategyManager from './components/SeoStrategyManager'; // NEW IMPORT
+import SeoAssetsLibrary from './components/SeoAssetsLibrary';
 import useLocalStorage from './hooks/useLocalStorage';
+import AccountSettings from './components/AccountSettings';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -142,10 +144,10 @@ const AppContent: React.FC = () => {
                 }
 
                 if (!config.supabaseUrl || !config.supabaseAnonKey) {
-                    // @ts-ignore
-                    const env = import.meta.env || {};
-                    config.supabaseUrl = env.VITE_SUPABASE_URL || env.REACT_APP_SUPABASE_URL || '';
-                    config.supabaseAnonKey = env.VITE_SUPABASE_ANON_KEY || env.REACT_APP_SUPABASE_ANON_KEY || '';
+                    // Use import.meta.env directly which is typed by vite-env.d.ts
+                    // Fallbacks for Create React App legacy if needed
+                    config.supabaseUrl = import.meta.env.VITE_SUPABASE_URL || (import.meta.env as any).REACT_APP_SUPABASE_URL || '';
+                    config.supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || (import.meta.env as any).REACT_APP_SUPABASE_ANON_KEY || '';
                 }
 
                 if (!config.supabaseUrl || !config.supabaseAnonKey) {
@@ -258,14 +260,14 @@ const AppContent: React.FC = () => {
                 queueRes,
                 imagesRes
             ] = await Promise.all([
-                supabase.from('projects').select('*'),
-                supabase.from('keyword_library').select('*'),
-                supabase.from('articles').select('*'),
-                supabase.from('models').select('*'),
-                supabase.from('posts_to_publish').select('*'),
-                supabase.from('publishing_channels').select('*'),
-                supabase.from('publishing_queue').select('*'),
-                supabase.from('saved_image_sets').select('*'),
+                supabase.from('projects').select('*').eq('user_id', session.user.id),
+                supabase.from('keyword_library').select('*').eq('user_id', session.user.id),
+                supabase.from('articles').select('*').eq('user_id', session.user.id),
+                supabase.from('models').select('*').eq('user_id', session.user.id),
+                supabase.from('posts_to_publish').select('*').eq('user_id', session.user.id),
+                supabase.from('publishing_channels').select('*').eq('user_id', session.user.id),
+                supabase.from('publishing_queue').select('*').eq('user_id', session.user.id),
+                supabase.from('saved_image_sets').select('*').eq('user_id', session.user.id),
             ]);
 
             // Error checking
@@ -324,7 +326,7 @@ const AppContent: React.FC = () => {
 
             setModels(allModels);
 
-            const userDefault = allModels.find(m => m.isDefault);
+            const userDefault = allModels.find(m => (m as any).isDefault || m.is_default);
             setDefaultModelId(userDefault?.id || allModels[0]?.id || null);
 
             setPostsToPublish(postsRes.data || []);
@@ -436,12 +438,14 @@ const AppContent: React.FC = () => {
                             <PageContainer isVisible={page === 'dashboard'}><Dashboard setPage={setPage} /></PageContainer>
                             <PageContainer isVisible={page === 'keyword-map'}><KeywordGenerator setPage={setPage} /></PageContainer>
                             <PageContainer isVisible={page === 'seo-data'}><SeoDataManager /></PageContainer>
+                            <PageContainer isVisible={page === 'seo-assets'}><SeoAssetsLibrary setPage={setPage} /></PageContainer>
                             <PageContainer isVisible={page === 'seo-strategy'}><SeoStrategyManager /></PageContainer>
                             <PageContainer isVisible={page === 'outline-article'}><ArticleGenerator setPage={setPage} /></PageContainer>
                             <PageContainer isVisible={page === 'image-text'}><ImageTextProcessor /></PageContainer>
                             <PageContainer isVisible={page === 'localization'}><LocalizationView /></PageContainer>
                             <PageContainer isVisible={page === 'publish'}><PublishingManager setPage={setPage} /></PageContainer>
                             <PageContainer isVisible={page === 'settings'}><ModelSettings /></PageContainer>
+                            <PageContainer isVisible={page === 'account'}><AccountSettings /></PageContainer>
                         </main>
                     </div>
                 )

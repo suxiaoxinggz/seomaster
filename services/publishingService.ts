@@ -23,12 +23,12 @@ interface WordPressUploadData {
 function getWpEndpoint(baseUrl: string, path: string): string {
     // 1. Remove trailing slashes from the base URL.
     let normalizedUrl = baseUrl.replace(/\/+$/, '');
-    
+
     // 2. Ensure it ends with /wp-json if it's a base URL.
     if (!normalizedUrl.includes('/wp-json')) {
         normalizedUrl = `${normalizedUrl}/wp-json`;
     }
-    
+
     // 3. Append the path.
     return `${normalizedUrl}${path}`;
 }
@@ -53,13 +53,13 @@ const base64ToBlob = (base64: string): { blob: Blob, extension: string } => {
  * @param channel The WordPress channel configuration.
  * @returns The URL of the uploaded image on WordPress.
  */
-async function uploadImageToWordPress(uploadData: WordPressUploadData, channel: PublishingChannel): Promise<string> {
+async function uploadImageToWordPress(uploadData: WordPressUploadData, channel: PublishingChannel): Promise<{ url: string, id: number }> {
     const { image, blob, sourceItem, imageIndex } = uploadData;
     const { apiUrl, username, password } = channel.config;
     if (!apiUrl || !username || !password) {
         throw new Error("WordPress channel configuration is incomplete.");
     }
-    
+
     let imageBlob: Blob;
     let imageType: string;
 
@@ -74,10 +74,10 @@ async function uploadImageToWordPress(uploadData: WordPressUploadData, channel: 
         imageBlob = await response.blob();
         imageType = imageBlob.type;
     }
-    
+
     const formData = new FormData();
     const extension = (imageType.split('/')[1] || 'jpg').split('+')[0];
-    
+
     // --- Start of new dynamic metadata logic ---
     let finalTitle: string;
     let finalAltText: string;
@@ -86,7 +86,7 @@ async function uploadImageToWordPress(uploadData: WordPressUploadData, channel: 
     // Check if the source is an Article or Post
     if ('title' in sourceItem && ('content' in sourceItem || 'htmlContent' in sourceItem)) {
         const post = sourceItem as Article | PostToPublish;
-        
+
         // Title Logic for Posts
         if (image.userDefinedName) {
             finalTitle = image.userDefinedName;
@@ -97,32 +97,32 @@ async function uploadImageToWordPress(uploadData: WordPressUploadData, channel: 
         }
 
         // Alt Text Logic for Posts
-        const keywordContext = (post as PostToPublish).keywordContext || (post as Article).keywordContext;
+        const keywordContext = (post as PostToPublish).keyword_context || (post as Article).keyword_context;
         finalAltText = keywordContext || image.alt_description;
 
-    } 
+    }
     // Check if the source is an Image Set from the Library
-    else if ('searchTermOrPrompt' in sourceItem) {
+    else if ('search_term_or_prompt' in sourceItem) {
         const imageSet = sourceItem as SavedImageSet;
-        
+
         // Title Logic for Library Images
         finalTitle = image.userDefinedName || image.alt_description;
-        
+
         // Alt Text Logic for Library Images
-        finalAltText = imageSet.searchTermOrPrompt || image.alt_description;
-    } 
+        finalAltText = imageSet.search_term_or_prompt || image.alt_description;
+    }
     // Fallback for any other case
     else {
         finalTitle = image.userDefinedName || image.alt_description;
         finalAltText = image.alt_description;
     }
-    
+
     const filenameBase = finalTitle.replace(/[^a-z0-9\s-]/gi, '_').replace(/\s+/g, '-').slice(0, 80) || image.id;
     const filename = `${filenameBase}.${extension}`;
 
     formData.append('file', new File([imageBlob], filename, { type: imageType }));
-    formData.append('title', finalTitle || filename); 
-    formData.append('alt_text', finalAltText || finalTitle); 
+    formData.append('title', finalTitle || filename);
+    formData.append('alt_text', finalAltText || finalTitle);
     formData.append('caption', `Image by ${image.author_name} on ${image.source_platform}`);
 
     if (finalDescription) {
@@ -140,7 +140,7 @@ async function uploadImageToWordPress(uploadData: WordPressUploadData, channel: 
         },
         body: formData,
     });
-    
+
     if (!uploadResponse.ok) {
         const errorText = await uploadResponse.text();
         throw new Error(`WordPress media upload failed with status ${uploadResponse.status}: ${errorText}`);
@@ -151,7 +151,7 @@ async function uploadImageToWordPress(uploadData: WordPressUploadData, channel: 
         throw new Error('WordPress media upload succeeded, but no source_url was returned.');
     }
 
-    return mediaData.source_url;
+    return { url: mediaData.source_url, id: mediaData.id };
 }
 
 
@@ -162,7 +162,7 @@ async function publishImageSetToWordPress(item: PublishingItem, channel: Publish
 
     for (const image of images) {
         try {
-            const newUrl = await uploadImageToWordPress({ image, sourceItem: item.data as SavedImageSet }, channel);
+            const { url: newUrl } = await uploadImageToWordPress({ image, sourceItem: item.data as SavedImageSet }, channel);
             details.push({ status: 'success', log: `Uploaded ${image.id}`, url: newUrl });
             successCount++;
         } catch (error: any) {
@@ -183,132 +183,191 @@ async function publishImageSetToWordPress(item: PublishingItem, channel: Publish
     };
 }
 
-/**
- * Helper to resolve term names (tags, categories) to IDs, creating new terms if necessary.
- * This is more robust as it handles a mix of IDs and names in user input.
- */
+// Helper to resolve term names (tags, categories) to IDs (Kept same as before, included for context if needed, but referenced outside)
+// Note: We are replacing the whole block, so we assume resolveTermIds exists below or we keep it. 
+// Ah, the tool replaces lines 56 to 429. resolveTermIds is lines 186-246. I should include it or exclude it from range.
+// Safe play: I will include resolveTermIds if it falls in range.
+// Wait, range is HUGE. 56-429 covers everything.
+
 async function resolveTermIds(termNamesString: string | undefined, termType: 'tags' | 'categories', channel: PublishingChannel): Promise<number[]> {
     if (!termNamesString || !termNamesString.trim()) {
         return [];
     }
-    
+
     const userInputParts = termNamesString.split(',').map(s => s.trim()).filter(Boolean);
     if (userInputParts.length === 0) return [];
-    
+
     const existingTerms: WpTerm[] = termType === 'tags'
         ? await fetchWpTags(channel)
         : await fetchWpCategories(channel);
 
     const nameToIdMap = new Map<string, number>(existingTerms.map(term => [term.name.toLowerCase(), term.id]));
     const idToNameMap = new Map<number, string>(existingTerms.map(term => [term.id, term.name]));
-    
+
     const resolvedIds = new Set<number>();
     const namesToCreate = new Set<string>();
-    
+
     for (const part of userInputParts) {
         const partLower = part.toLowerCase();
         const numId = parseInt(part, 10);
 
-        // Priority 1: Check if input matches an existing term NAME.
         if (nameToIdMap.has(partLower)) {
             resolvedIds.add(nameToIdMap.get(partLower)!);
-        } 
-        // Priority 2: Check if input is a number AND matches an existing term ID.
+        }
         else if (!isNaN(numId) && idToNameMap.has(numId)) {
             resolvedIds.add(numId);
-        } 
-        // Priority 3: If neither match, it's a new term NAME to be created.
+        }
         else {
-            // Check against the case-insensitive map one last time to avoid creating duplicates.
             if (!nameToIdMap.has(partLower)) {
-               namesToCreate.add(part);
+                namesToCreate.add(part);
             }
         }
     }
-    
+
     if (namesToCreate.size > 0) {
-        // For categories, we only create them, we don't handle parent/child relationships here for simplicity.
         const creationPromises = Array.from(namesToCreate).map(name => createWpTerm(channel, termType, name));
-        
         try {
             const createdTerms = await Promise.all(creationPromises);
             createdTerms.forEach(term => resolvedIds.add(term.id));
         } catch (creationError) {
             console.error(`Failed to create some ${termType}.`, creationError);
-            // We can decide to continue without the failed terms or throw.
-            // For now, we'll continue, and the retry mechanism will handle the rest.
-            throw creationError; // Throw to trigger the retry logic
+            throw creationError;
         }
     }
-    
+
     return Array.from(resolvedIds);
 }
 
 async function publishToWordPress(item: PublishingItem, channel: PublishingChannel): Promise<PublishedDestination> {
     const { apiUrl, username, password } = channel.config;
-    
+
     // 1. Use the appropriate formatter based on source type
-    const { title, images } = item.sourceType === 'article'
+    const { title, images } = item.source_type === 'article'
         ? formatArticleForWordPress(item.data as Article)
         : formatPostForWordPress(item.data as PostToPublish);
-        
-    let content = item.sourceType === 'article' 
+
+    let content = item.source_type === 'article'
         ? formatArticleForWordPress(item.data as Article).content
         : formatPostForWordPress(item.data as PostToPublish).content;
 
-    // 2. Upload all images and get their new URLs
+    let featuredMediaId: number | undefined;
+
+    // 2. Process images: Smart Handling for Base64 vs Direct URL vs Featured Image
     if (images && images.length > 0) {
-        const base64Regex = /src=["'](data:image\/[^;]+;base64,[^"']+)["']/g;
-        const base64Sources = [...content.matchAll(base64Regex)].map(match => match[1]);
+        const imgTagRegex = /<img\s+[^>]*?>/gi;
+        const matches = [...content.matchAll(imgTagRegex)];
+        const imageMap = new Map(images.map(img => [img.id, img]));
+        const replacements: { old: string, new: string }[] = [];
 
-        if(base64Sources.length !== images.length){
-             console.warn("Mismatch between number of images in HTML and in usedImages array. Replacement may be incorrect.");
-        }
+        // Track if we found a candidate for featured image
+        let firstImageProcessed = false;
 
-        for (let i = 0; i < base64Sources.length; i++) {
-            const oldUrl = base64Sources[i];
-            const image = images[i]; // Rely on order
-            if (!image) continue;
+        for (const match of matches) {
+            const imgTag = match[0];
+            const srcMatch = imgTag.match(/src=["'](.*?)["']/);
+            const src = srcMatch ? srcMatch[1] : null;
+            if (!src) continue;
 
-            try {
-                const { blob } = base64ToBlob(oldUrl);
-                const newUrl = await uploadImageToWordPress(
-                    { image, blob, sourceItem: item.data as PostToPublish | Article, imageIndex: i }, 
-                    channel
-                );
-                
-                const escapeRegExp = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                const regex = new RegExp(escapeRegExp(oldUrl), 'g');
-                content = content.replace(regex, newUrl);
+            const idMatch = imgTag.match(/data-image-id=["'](.*?)["']/);
+            const id = idMatch ? idMatch[1] : null;
 
-            } catch (error) {
-                console.error(`Failed to upload image ${i+1} for post ${title}`, error);
+            // Resolve Image Object
+            let imageMeta: ImageObject | undefined;
+            if (id && imageMap.has(id)) {
+                imageMeta = imageMap.get(id);
+            } else {
+                imageMeta = images.find(img => img.url_regular === src || img.base64 === src);
+            }
+
+            // Fallback Metadata
+            if (!imageMeta) {
+                imageMeta = {
+                    id: id || `unknown-${Date.now()}`,
+                    url_regular: src,
+                    url_full: src,
+                    alt_description: 'Embedded Image',
+                    author_name: 'Unknown',
+                    author_url: '',
+                    source_platform: 'custom' as any,
+                    source_url: '',
+                    width: 1024,
+                    height: 1024
+                };
+            }
+
+            const isBase64 = src.startsWith('data:');
+            const isFirstImage = !firstImageProcessed;
+
+            if (isFirstImage) firstImageProcessed = true;
+
+            if (isBase64) {
+                // Must upload Base64
+                try {
+                    const { blob } = base64ToBlob(src);
+                    const { url: newUrl, id: wpId } = await uploadImageToWordPress(
+                        { image: imageMeta, blob, sourceItem: item.data as PostToPublish | Article },
+                        channel
+                    );
+
+                    // Set Featured Image if it's the first one
+                    if (isFirstImage) featuredMediaId = wpId;
+
+                    // Text Replacement
+                    const newTag = imgTag.replace(src, newUrl);
+                    replacements.push({ old: imgTag, new: newTag });
+
+                } catch (error) {
+                    console.error(`Failed to upload image for post ${title}:`, error);
+                }
+            } else {
+                // It is a Direct URL (R2/External)
+                // We KEEP the URL in the content (Direct URL Support)
+
+                // BUT: if it's the first image, and we haven't set a featured image yet,
+                // we should "sideload" it to WP just for the featured_media ID.
+                if (isFirstImage && !featuredMediaId) {
+                    try {
+                        console.log(`Sideloading first image for Featured Media: ${src}`);
+                        // We pass undefined blob to trigger fetch from URL inside the function
+                        const { id: wpId } = await uploadImageToWordPress(
+                            { image: imageMeta, sourceItem: item.data as PostToPublish | Article },
+                            channel
+                        );
+                        featuredMediaId = wpId;
+                    } catch (e) {
+                        console.warn("Failed to sideload featured image from URL", e);
+                    }
+                }
             }
         }
+
+        // Apply replacements
+        replacements.forEach(rep => {
+            content = content.replace(rep.old, rep.new);
+        });
     }
 
-    // 3. Prepare post payload with resolved term IDs
+    // 3. Prepare post payload
     const postPayload: any = {
-        title: { raw: title }, 
+        title: { raw: title },
         content: content,
         status: channel.config.status || 'draft',
     };
     if (channel.config.lang) postPayload.lang = channel.config.lang;
+    if (featuredMediaId) postPayload.featured_media = featuredMediaId;
 
-    // 4. Publish the post (with insurance retry)
+    // 4. Publish the post
     const endpoint = getWpEndpoint(apiUrl, '/wp/v2/posts');
     const authString = btoa(`${username}:${password}`);
 
     try {
-        // Resolve tags and categories only if provided
         const [tagIds, categoryIds] = await Promise.all([
             resolveTermIds(channel.config.tags, 'tags', channel),
             resolveTermIds(channel.config.categories, 'categories', channel)
         ]);
         if (tagIds.length > 0) postPayload.tags = tagIds;
         if (categoryIds.length > 0) postPayload.categories = categoryIds;
-        
-        // First attempt with tags and categories
+
         const postResponse = await fetch(endpoint, {
             method: 'POST',
             headers: { 'Authorization': `Basic ${authString}`, 'Content-Type': 'application/json' },
@@ -319,7 +378,7 @@ async function publishToWordPress(item: PublishingItem, channel: PublishingChann
             const errorText = await postResponse.text();
             throw new Error(`WordPress post creation failed (1st attempt): ${errorText}`);
         }
-        
+
         const createdPost = await postResponse.json();
         return {
             platform: PublishingPlatform.WORDPRESS,
@@ -332,8 +391,6 @@ async function publishToWordPress(item: PublishingItem, channel: PublishingChann
 
     } catch (initialError) {
         console.warn("Initial post creation failed. Retrying without tags/categories.", initialError);
-
-        // Insurance retry: Remove tags and categories and try again.
         delete postPayload.tags;
         delete postPayload.categories;
 
@@ -342,10 +399,9 @@ async function publishToWordPress(item: PublishingItem, channel: PublishingChann
             headers: { 'Authorization': `Basic ${authString}`, 'Content-Type': 'application/json' },
             body: JSON.stringify(postPayload),
         });
-        
+
         if (!retryResponse.ok) {
             const errorText = await retryResponse.text();
-            // If even the retry fails, throw the original error for better context.
             throw new Error(`WordPress post creation failed on both attempts. Initial error: ${(initialError as Error).message}. Retry error: ${errorText}`);
         }
 
@@ -372,19 +428,19 @@ async function publishToWordPress(item: PublishingItem, channel: PublishingChann
 export async function publishItem(item: PublishingItem, channel: PublishingChannel): Promise<PublishedDestination> {
     switch (channel.platform) {
         case PublishingPlatform.WORDPRESS:
-            if (item.sourceType === 'article' || item.sourceType === 'post') {
+            if (item.source_type === 'article' || item.source_type === 'post') {
                 return publishToWordPress(item, channel);
             }
-            if (item.sourceType === 'image_set') {
+            if (item.source_type === 'image_set') {
                 return publishImageSetToWordPress(item, channel);
             }
-            throw new Error(`Publishing type '${item.sourceType}' to WordPress is not supported yet.`);
+            throw new Error(`Publishing type '${item.source_type}' to WordPress is not supported yet.`);
 
         case PublishingPlatform.CLOUDFLARE_R2:
         case PublishingPlatform.SUPABASE:
         case PublishingPlatform.GCS:
         case PublishingPlatform.S3:
-             throw new Error(`Publishing to ${channel.platform} is not yet implemented.`);
+            throw new Error(`Publishing to ${channel.platform} is not yet implemented.`);
 
         default:
             throw new Error(`Unknown or unsupported publishing platform: ${channel.platform}`);

@@ -1,19 +1,21 @@
 import React, { useState, useContext, useRef, useEffect } from 'react';
 import { AppContext } from '../context/AppContext';
-import { Model, KeywordSubProject, Article, Project, Page, ModelProvider } from '../types';
+import { Model, KeywordSubProject, Article, Project, Page, ModelProvider, TranslationProvider, TranslationApiKeys } from '../types';
 import { ARTICLE_PROMPT_TEMPLATE } from '../constants';
-import { generateArticleStream, translateText } from '../services/llmService';
+import { generateArticleStream } from '../services/llmService';
+import { fetchTranslation } from '../services/translationService';
+import useLocalStorage from '../hooks/useLocalStorage';
 import Button from './ui/Button';
 import Card from './ui/Card';
 import Select from './ui/Select';
 import Toggle from './ui/Toggle';
 import Modal from './ui/Modal';
 import Input from './ui/Input';
-import { PencilIcon, ImageIcon } from './icons';
+import { PencilIcon, ImageIcon, GlobeIcon } from './icons';
 import { toast } from 'react-hot-toast';
 
 // Helper to format a sub-project into a string for the context textarea
-const formatSubProjectForContext = (subProject: KeywordSubProject): string => {
+export const formatSubProjectForContext = (subProject: KeywordSubProject): string => {
     let context = `Sub-Project: ${subProject.name}\n`;
     context += `Model Used: ${subProject.model_used}\n\n`;
 
@@ -49,6 +51,17 @@ const ArticleGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
     const [generatedArticle, setGeneratedArticle] = useState('');
     const [translatedArticle, setTranslatedArticle] = useState('');
     const [savedArticleId, setSavedArticleId] = useState<string | null>(null);
+
+    // Translation State
+    const [targetLanguage, setTargetLanguage] = useState('Chinese (Simplified)');
+    const [translationProvider, setTranslationProvider] = useState<TranslationProvider>(TranslationProvider.LLM);
+    // Keys sharing with LocalizationView via localStorage
+    const [apiKeys] = useLocalStorage<TranslationApiKeys>('translation_api_keys', {
+        [TranslationProvider.DEEPL]: '',
+        [TranslationProvider.GOOGLE]: '',
+        [TranslationProvider.MICROSOFT]: '',
+        'microsoft_region': ''
+    });
 
     // Control state
     const [isLoading, setIsLoading] = useState(false);
@@ -134,14 +147,33 @@ const ArticleGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
     };
 
     const handleTranslate = async () => {
-        if (!generatedArticle || !currentSelectedModel) return;
+        if (!generatedArticle) return;
+
+        // Validation: If using API, check key exists
+        if (translationProvider !== TranslationProvider.LLM && !apiKeys[translationProvider]) {
+            toast.error(`Missing API Key for ${translationProvider}. Please configure in Localization Center.`);
+            return;
+        }
+        if (translationProvider === TranslationProvider.LLM && !currentSelectedModel) {
+            toast.error("Please select a model for LLM translation.");
+            return;
+        }
+
         setIsTranslating(true);
         try {
-            const result = await translateText(generatedArticle, currentSelectedModel);
+            // Call Unified Service
+            // Note: For LLM, we pass the current model. For others, keys are used.
+            const result = await fetchTranslation(
+                generatedArticle,
+                targetLanguage,
+                translationProvider,
+                apiKeys,
+                currentSelectedModel // Passed only if LLM provider
+            );
             setTranslatedArticle(result);
             toast.success("Translation complete.");
         } catch (err) {
-            toast.error("Translation failed.");
+            toast.error(`Translation failed: ${(err as Error).message}`);
         } finally {
             setIsTranslating(false);
         }
@@ -255,6 +287,35 @@ const ArticleGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
             const { error: articleError } = await supabase.from('articles').insert({ ...newArticle, user_id: session.user.id } as any);
             if (articleError) throw articleError;
 
+            // --- NEW: Link Article to Keywords (Normalized) ---
+            if (finalSubProjectId) {
+                try {
+                    // 1. Fetch all keywords belonging to this sub-project
+                    // Cast to any because 'keywords' table might not be in types yet
+                    const { data: keywordNodes, error: kwFetchError } = await (supabase as any)
+                        .from('keywords')
+                        .select('id')
+                        .eq('sub_project_id', finalSubProjectId);
+
+                    if (!kwFetchError && keywordNodes && keywordNodes.length > 0) {
+                        // 2. Prepare intersection rows
+                        const articleKeywords = keywordNodes.map((k: any) => ({
+                            article_id: articleId,
+                            keyword_id: k.id
+                        }));
+
+                        // 3. Insert links
+                        const { error: linkError } = await (supabase as any)
+                            .from('article_keywords')
+                            .insert(articleKeywords);
+
+                        if (linkError) console.error("Failed to link article keywords:", linkError);
+                    }
+                } catch (linkErr) {
+                    console.error("Link keywords error:", linkErr);
+                }
+            }
+
             setSavedArticleId(articleId); // Save successful, store ID
             await fetchData();
             handleCloseSaveModal();
@@ -308,17 +369,45 @@ const ArticleGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
                 </Card>
                 <Card>
                     <div className="space-y-4">
-                        <Select label="Select Model" value={selectedModelId || ''} onChange={(e) => setSelectedModelId(e.target.value)}>
-                            {customModels.length > 0 && (
-                                <optgroup label="自定义模型 (Custom)">
-                                    {customModels.map(m => <option key={m.id} value={m.id}>{m.nickname}</option>)}
+                        <div className="pb-4 border-b border-gray-700">
+                            <Select label="Select Model (Generation)" value={selectedModelId || ''} onChange={(e) => setSelectedModelId(e.target.value)}>
+                                {customModels.length > 0 && (
+                                    <optgroup label="自定义模型 (Custom)">
+                                        {customModels.map(m => <option key={m.id} value={m.id}>{m.nickname}</option>)}
+                                    </optgroup>
+                                )}
+                                <optgroup label="预设模型 (Presets)">
+                                    {presetModels.map(m => <option key={m.id} value={m.id}>{m.nickname}</option>)}
                                 </optgroup>
-                            )}
-                            <optgroup label="预设模型 (Presets)">
-                                {presetModels.map(m => <option key={m.id} value={m.id}>{m.nickname}</option>)}
-                            </optgroup>
-                        </Select>
-                        <Toggle label="Enable Web Search" enabled={enableWebSearch} setEnabled={setEnableWebSearch} disabled={!currentSelectedModel?.supports_web_search} />
+                            </Select>
+                            <Toggle label="Enable Web Search" enabled={enableWebSearch} setEnabled={setEnableWebSearch} disabled={!currentSelectedModel?.supports_web_search} />
+                        </div>
+
+                        {/* NEW: Translation Strategy Selector */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center">
+                                <GlobeIcon className="w-4 h-4 mr-2" />
+                                翻译策略 (Translation)
+                            </label>
+                            <div className="flex gap-2 mb-2">
+                                <Select value={translationProvider} onChange={(e) => setTranslationProvider(e.target.value as TranslationProvider)}>
+                                    <option value={TranslationProvider.LLM}>智能 AI (LLM)</option>
+                                    <option value={TranslationProvider.DEEPL}>DeepL API</option>
+                                    <option value={TranslationProvider.GOOGLE}>Google Translate</option>
+                                    <option value={TranslationProvider.MICROSOFT}>Microsoft Translator</option>
+                                    <option value={TranslationProvider.LIBRE}>LibreTranslate (Free/Self-Hosted)</option>
+                                </Select>
+                                {translationProvider !== TranslationProvider.LLM && (
+                                    <div className={`flex items-center px-2 text-xs rounded border ${(
+                                        translationProvider === TranslationProvider.LIBRE && !apiKeys.libre_api_key && !apiKeys.libre_base_url // Libre is lenient, green if default
+                                            ? true
+                                            : !!apiKeys[translationProvider]
+                                    ) ? 'border-green-800 bg-green-900/30 text-green-400' : 'border-red-800 bg-red-900/30 text-red-400'}`}>
+                                        {(translationProvider === TranslationProvider.LIBRE && !apiKeys.libre_api_key) ? 'Public/Open' : (apiKeys[translationProvider] ? 'Key Configured' : 'Missing Key')}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 </Card>
                 <div className="mt-auto pt-4">
@@ -328,7 +417,7 @@ const ArticleGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
                 </div>
             </div>
 
-            {/* Right Panel logic remains same, mostly omitted for brevity */}
+            {/* Right Panel - Dual View */}
             <div className="flex-1 p-8 flex flex-col overflow-y-auto">
                 {!generatedArticle && !isLoading && (
                     <div className="flex items-center justify-center h-full text-center text-gray-500">
@@ -363,19 +452,43 @@ const ArticleGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
                                 </Button>
                             </div>
                         </div>
-                        <textarea
-                            value={generatedArticle}
-                            onChange={(e) => setGeneratedArticle(e.target.value)}
-                            className="w-full flex-1 bg-gray-800 border border-gray-700 rounded-md p-4 resize-none focus:ring-2 focus:ring-blue-500 outline-none"
-                            placeholder="文章内容生成中..."
-                        />
-                        <div className="mt-6">
-                            <div className="flex justify-between items-center mb-2">
-                                <h3 className="text-xl font-semibold text-white">翻译</h3>
-                                <Button onClick={handleTranslate} isLoading={isTranslating} size="sm" variant="secondary">翻译成中文</Button>
+
+                        {/* DUAL VIEW CONTAINER */}
+                        <div className="flex-1 grid grid-cols-2 gap-4 min-h-0 mb-4">
+                            {/* LEFT: ORIGINAL */}
+                            <div className="flex flex-col h-full">
+                                <div className="bg-gray-800 px-4 py-2 rounded-t-lg border-b border-gray-700 flex justify-between">
+                                    <span className="text-sm font-semibold text-gray-300">原文 (Original)</span>
+                                </div>
+                                <textarea
+                                    value={generatedArticle}
+                                    onChange={(e) => setGeneratedArticle(e.target.value)}
+                                    className="w-full flex-1 bg-gray-800 border-l border-r border-b border-gray-700 rounded-b-lg p-4 resize-none focus:ring-2 focus:ring-blue-500 outline-none text-sm font-mono text-gray-300"
+                                    placeholder="文章内容生成中..."
+                                />
                             </div>
-                            <div className="w-full h-40 bg-gray-800 border border-gray-700 rounded-md p-4 whitespace-pre-wrap overflow-y-auto">
-                                {translatedArticle || <span className="text-gray-500">翻译结果...</span>}
+
+                            {/* RIGHT: TRANSLATION */}
+                            <div className="flex flex-col h-full">
+                                <div className="bg-gray-800 px-4 py-2 rounded-t-lg border-b border-gray-700 flex justify-between items-center">
+                                    <span className="text-sm font-semibold text-blue-400">中文译文 ({targetLanguage})</span>
+                                    <Button
+                                        onClick={handleTranslate}
+                                        isLoading={isTranslating}
+                                        size="sm"
+                                        variant="primary"
+                                        disabled={!generatedArticle || isTranslating}
+                                    >
+                                        {isTranslating ? '翻译中...' : '点击翻译'}
+                                    </Button>
+                                </div>
+                                <div className="w-full flex-1 bg-gray-800 border-l border-r border-b border-gray-700 rounded-b-lg p-4 whitespace-pre-wrap overflow-y-auto text-sm font-mono text-white relative">
+                                    {translatedArticle ? translatedArticle : (
+                                        <div className="flex items-center justify-center h-full text-gray-500 italic">
+                                            {isTranslating ? 'Translating...' : '点击上方按钮开始翻译'}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -437,8 +550,8 @@ const ArticleGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
                         <>
                             <Select label="子项目" value={saveToSubProject} onChange={(e) => setSaveToSubProject(e.target.value)}>
                                 <option value="">选择子项目...</option>
-                                {keywordLibrary.filter(sp => sp.parent_project_id === saveToParentProject).map(sp => <option key={sp.id} value={sp.id}>{sp.name}</option>)}
                                 <option value="create_new">+ 创建新子项目</option>
+                                {keywordLibrary.filter(sp => sp.parent_project_id === saveToParentProject).map(sp => <option key={sp.id} value={sp.id}>{sp.name}</option>)}
                             </Select>
                             {saveToSubProject === 'create_new' && (
                                 <Input className="ml-4" label="新子项目名称" value={newSubProjectName} onChange={(e) => setNewSubProjectName(e.target.value)} />

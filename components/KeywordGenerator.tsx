@@ -481,6 +481,37 @@ const KeywordGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
             const { error } = await supabase.from('keyword_library').insert({ ...newSubProject, user_id: session.user.id } as any);
             if (error) throw error;
 
+            // --- NEW: Flatten and sync to normalized 'keywords' table ---
+            try {
+                const flatKeywords: any[] = [];
+                const addKw = (text: string, type: string, meta: any = {}) => {
+                    flatKeywords.push({
+                        user_id: session.user.id,
+                        sub_project_id: newSubProject.id,
+                        text: text,
+                        metadata: { ...meta, type }
+                    });
+                };
+
+                newSubProject.keywords.forEach(l1 => {
+                    addKw(l1.keyword, 'L1', { pageType: l1.pageType });
+                    l1.children.forEach(l2 => {
+                        addKw(l2.keyword, 'L2', { l1_parent: l1.keyword, type: l2.type });
+                        l2.lsi.forEach(lsi => {
+                            addKw(lsi.text, 'LSI', { l2_parent: l2.keyword });
+                        });
+                    });
+                });
+
+                if (flatKeywords.length > 0) {
+                    const { error: kwError } = await (supabase as any).from('keywords').insert(flatKeywords);
+                    if (kwError) console.error("Failed to sync normalized keywords:", kwError);
+                }
+            } catch (syncErr) {
+                console.error("Keyword sync error:", syncErr);
+                // Non-fatal, don't stop flow
+            }
+
             await fetchData();
             setIsSaveModalOpen(false);
             setSubProjectName('');

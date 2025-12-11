@@ -191,38 +191,57 @@ async function dfsRequest(endpoint: string, payload: any[], config: SeoConfig) {
 
 // --- MAPPER FUNCTIONS (Critical for robustness) ---
 
-const mapDfsItemToMetric = (item: any): KeywordMetric => {
-    // Determine data source priorities (Normalized > Regular)
-    const info = item.keyword_info || item;
-    const clickstream = item.keyword_info_normalized_with_clickstream;
+export const mapDfsItemToMetric = (item: any): KeywordMetric => {
+    // 1. Base Info
+    // DataForSEO Labs returns 'keyword_info' for search volume, cpc, etc.
+    const info = item.keyword_info || {};
 
-    // Check if we have valid clickstream data
-    const useClickstream = !!clickstream && (clickstream.search_volume !== null && clickstream.search_volume !== undefined);
+    // 2. Keyword Properties (KD is here)
+    const props = item.keyword_properties || {};
 
-    // Base volume
-    const searchVolume = useClickstream ? clickstream.search_volume : (info.search_volume || 0);
+    // 3. Clickstream Info (If requested)
+    // Docs confirm key is 'clickstream_keyword_info'
+    const clickstream = item.clickstream_keyword_info;
+
+    // Determine effective volume
+    const hasClickstreamVol = clickstream && (clickstream.search_volume !== null && clickstream.search_volume !== undefined);
+    const searchVolume = hasClickstreamVol ? clickstream.search_volume : (info.search_volume || 0);
 
     // Extract trend
-    const trends = (info.monthly_searches || []).map((m: any) => m.search_volume).reverse().slice(0, 12);
+    // 'monthly_searches' is an array of { year, month, search_volume }
+    const monthlySearches = info.monthly_searches || [];
+    const trends = monthlySearches.map((m: any) => m.search_volume).reverse().slice(0, 12);
 
     return {
         keyword: item.keyword,
+
+        // Volume
         search_volume: searchVolume,
         clickstream_volume: clickstream?.search_volume,
-        is_normalized: useClickstream,
-        impressions_potential: item.impressions_info?.daily_impressions_min, // e.g. from keyword_ideas
+        is_normalized: !!hasClickstreamVol,
+        impressions_potential: item.impressions_info?.daily_impressions_min,
 
+        // CPC & Competition
         cpc: info.cpc || 0,
         low_top_of_page_bid: info.low_top_of_page_bid,
         high_top_of_page_bid: info.high_top_of_page_bid,
-
         competition: info.competition || 0,
         competition_level: info.competition_level || 'LOW',
-        keyword_difficulty: item.keyword_properties?.keyword_difficulty, // Sometimes in properties
 
+        // Difficulty (Crucial Fix: Use props.keyword_difficulty)
+        keyword_difficulty: props.keyword_difficulty !== undefined ? props.keyword_difficulty : 0,
+
+        // Intent
         search_intent: info.search_intent_info?.main_intent,
 
+        // History
         trend_history: trends.length > 0 ? trends : [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        monthly_searches: monthlySearches,
+
+        // Demographics
+        clickstream_age_distribution: clickstream?.age_distribution,
+        clickstream_gender_distribution: clickstream?.gender_distribution,
+
         updated_at: new Date().toISOString()
     };
 };
@@ -256,55 +275,74 @@ export const fetchKeywordData = async (
 
     // --- REAL API MODE ---
 
-    // 2. Prepare Requests
-    const promises: Promise<any>[] = [];
-
-    // Request A: Keyword Overview (Bulk)
-    // Up to 700 keywords supported by 'keyword_overview/live'
-    const overviewPayload = [{
-        keywords: keywords.slice(0, 700),
-        location_code: params.location_code,
-        language_code: params.language_code,
-        include_clickstream_data: params.include_clickstream ?? false,
-        tag: params.tag
-    }];
-    promises.push(dfsRequest('dataforseo_labs/google/keyword_overview/live', overviewPayload, config));
-
-    // Request B: Related Keywords (Only if exploring a single seed)
-    const isSingleSeed = keywords.length === 1;
-    if (isSingleSeed) {
-        const relatedPayload = [{
-            keyword: keywords[0],
-            location_code: params.location_code,
-            language_code: params.language_code,
-            depth: params.depth || 1,
-            limit: params.limit || 50,
-            include_clickstream_data: false // Keep related cheap
-        }];
-        promises.push(dfsRequest('dataforseo_labs/google/related_keywords/live', relatedPayload, config));
-    }
+    // Helper: Chunking for bulk limits (DataForSEO limit is usually 700-1000 per request)
+    const chunkArray = <T>(array: T[], size: number): T[][] => {
+        const chunked: T[][] = [];
+        for (let i = 0; i < array.length; i += size) {
+            chunked.push(array.slice(i, i + size));
+        }
+        return chunked;
+    };
 
     try {
-        const results = await Promise.all(promises);
-        const overviewTask = results[0];
-        const relatedTask = isSingleSeed ? results[1] : null;
+        const overviewChunks = chunkArray(keywords, 700);
+        let allOverviewMetrics: KeywordMetric[] = [];
+        let allRelatedMetrics: KeywordMetric[] = [];
 
-        // 3. Process Overview Response
-        // DFS returns: tasks[0].result[0].items array
-        const overviewItems = overviewTask[0]?.result[0]?.items || [];
-        const overviewMetrics = overviewItems.map(mapDfsItemToMetric);
+        // Execute chunks (sequentially to avoid rate limits, or parallel if needed)
+        // Using Promise.all for speed, assuming API handles concurrency well (usually 20-50 threads allowed)
 
-        // 4. Process Related Response
-        let relatedMetrics: KeywordMetric[] = [];
+        const chunkPromises = overviewChunks.map(async (chunk) => {
+            const overviewPayload = [{
+                keywords: chunk,
+                location_code: params.location_code,
+                language_code: params.language_code,
+                include_clickstream_data: params.include_clickstream ?? false,
+                include_serp_info: false,
+                tag: params.tag
+            }];
+            return dfsRequest('dataforseo_labs/google/keyword_overview/live', overviewPayload, config);
+        });
+
+        // Request B: Related Keywords (Only if exploring a single seed)
+        const isSingleSeed = keywords.length === 1;
+        let relatedPromise: Promise<any> | null = null;
+
+        if (isSingleSeed) {
+            const relatedPayload = [{
+                keyword: keywords[0],
+                location_code: params.location_code,
+                language_code: params.language_code,
+                depth: params.depth || 1,
+                limit: params.limit || 50,
+                include_clickstream_data: false
+            }];
+            relatedPromise = dfsRequest('dataforseo_labs/google/related_keywords/live', relatedPayload, config);
+        }
+
+        const [chunkResults, relatedTask] = await Promise.all([
+            Promise.all(chunkPromises),
+            relatedPromise
+        ]);
+
+        // Process Overview Chunks
+        chunkResults.forEach(taskResult => {
+            const resultItems = taskResult[0]?.result[0]?.items || [];
+            const metrics = resultItems.map(mapDfsItemToMetric);
+            allOverviewMetrics = [...allOverviewMetrics, ...metrics];
+        });
+
+        // Process Related Result
         if (relatedTask) {
-            // related returns items with 'keyword_data' inside
             const rawRelated = relatedTask[0]?.result[0]?.items || [];
-            relatedMetrics = rawRelated.map((item: any) => mapDfsItemToMetric(item.keyword_data));
+            allRelatedMetrics = rawRelated.map((item: any) => mapDfsItemToMetric({
+                ...item.keyword_data,
+            }));
         }
 
         return {
-            overview: overviewMetrics,
-            related: relatedMetrics
+            overview: allOverviewMetrics,
+            related: allRelatedMetrics
         };
 
     } catch (error) {
@@ -425,12 +463,21 @@ export const fetchAiVisibility = async (keyword: string, config: SeoConfig): Pro
         const tasks = await dfsRequest('ai_optimization/llm_mentions/search/live', payload, config);
         const result = tasks[0]?.result[0];
 
+        // Items array holds the data for mentions
+        const items = result.items || [];
+        const singular = items.length > 0 ? items[0] : {};
+
         return {
             keyword,
             platform: 'chat_gpt',
-            mentions_count: result.mentions_count || 0,
-            summary: result.summary || "No summary available.",
-            sentiment: result.sentiment || 'neutral',
+            mentions_count: result.mentions_count || items.length || 0,
+            summary: singular.summary || result.summary || "No summary available.",
+            sentiment: singular.sentiment || result.sentiment || 'neutral',
+
+            ai_search_volume: singular.ai_search_volume,
+            ai_trend_history: singular.ai_monthly_searches,
+            ai_overview_text: singular.text || singular.answer,
+
             sources: result.llm_sources?.map((s: any) => ({
                 domain: s.domain,
                 url: s.url,
@@ -474,6 +521,7 @@ export const fetchContentGeneration = async (params: ContentGenParams, config: S
 
     switch (params.mode) {
         case 'generate':
+            // Generate Text (Prompt based)
             endpoint = 'content_generation/generate/live';
             payload.text = params.text;
             if (params.max_tokens) payload.max_tokens = params.max_tokens;
@@ -481,6 +529,7 @@ export const fetchContentGeneration = async (params: ContentGenParams, config: S
             if (params.avoid_starting_words && params.avoid_starting_words.length > 0) payload.avoid_starting_words = params.avoid_starting_words;
             break;
         case 'generate_text':
+            // Generate Text (Topic based)
             endpoint = 'content_generation/generate_text/live';
             payload.topic = params.topic;
             if (params.word_count) payload.word_count = params.word_count;
@@ -528,6 +577,7 @@ export const fetchContentGeneration = async (params: ContentGenParams, config: S
         if (params.mode === 'check_grammar') {
             output.input_text = result.input_text;
             output.corrected_text = result.corrected_text;
+            // Grammar errors are usually directly in the result
             output.grammar_errors = result.grammar_errors;
         }
 

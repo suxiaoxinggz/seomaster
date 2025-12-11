@@ -6,194 +6,194 @@ export const PRESET_MODELS: Model[] = [
   {
     id: 'mistral-large-latest',
     nickname: 'Mistral Large (Top Tier)',
-    apiKey: '', // User key required
-    baseURL: 'https://api.mistral.ai/v1',
-    supportsWebSearch: false,
+    api_key: '', // User key required
+    base_url: 'https://api.mistral.ai/v1',
+    supports_web_search: false,
     type: ModelProvider.PRESET,
-    apiProvider: ApiProvider.MISTRAL,
+    api_provider: ApiProvider.MISTRAL,
   },
   {
     id: 'open-mistral-nemo',
     nickname: 'Mistral Nemo (Fast/Cheap)',
-    apiKey: '', // User key required
-    baseURL: 'https://api.mistral.ai/v1',
-    supportsWebSearch: false,
+    api_key: '', // User key required
+    base_url: 'https://api.mistral.ai/v1',
+    supports_web_search: false,
     type: ModelProvider.PRESET,
-    apiProvider: ApiProvider.MISTRAL,
+    api_provider: ApiProvider.MISTRAL,
   },
   {
     id: 'meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo',
     nickname: 'Llama 3.1 405B (Together AI)',
-    apiKey: '', // User key required
-    baseURL: 'https://api.together.xyz/v1',
-    supportsWebSearch: false,
+    api_key: '', // User key required
+    base_url: 'https://api.together.xyz/v1',
+    supports_web_search: false,
     type: ModelProvider.PRESET,
-    apiProvider: ApiProvider.TOGETHER,
+    api_provider: ApiProvider.TOGETHER,
   },
   {
     id: 'Qwen/Qwen2.5-72B-Instruct-Turbo',
     nickname: 'Qwen 2.5 72B (Together AI)',
-    apiKey: '', // User key required
-    baseURL: 'https://api.together.xyz/v1',
-    supportsWebSearch: false,
+    api_key: '', // User key required
+    base_url: 'https://api.together.xyz/v1',
+    supports_web_search: false,
     type: ModelProvider.PRESET,
-    apiProvider: ApiProvider.TOGETHER,
+    api_provider: ApiProvider.TOGETHER,
   },
   {
     id: 'moonshot-v1-auto',
     nickname: 'Kimi (Moonshot) - Auto Context',
-    apiKey: '', // User key required
-    baseURL: 'https://api.moonshot.cn/v1',
-    supportsWebSearch: true, // Kimi supports retrieval via tools usually, but we treat it as basic LLM here unless configured
+    api_key: '', // User key required
+    base_url: 'https://api.moonshot.cn/v1',
+    supports_web_search: true, // Kimi supports retrieval via tools usually, but we treat it as basic LLM here unless configured
     type: ModelProvider.PRESET,
-    apiProvider: ApiProvider.MOONSHOT,
+    api_provider: ApiProvider.MOONSHOT,
   },
   {
     id: 'yi-lightning',
     nickname: 'Yi-Lightning (01.ai) - Fast/Cheap',
-    apiKey: '', // User key required
-    baseURL: 'https://api.lingyiwanwu.com/v1',
-    supportsWebSearch: false,
+    api_key: '', // User key required
+    base_url: 'https://api.lingyiwanwu.com/v1',
+    supports_web_search: false,
     type: ModelProvider.PRESET,
-    apiProvider: ApiProvider.YI,
+    api_provider: ApiProvider.YI,
   },
   {
     id: 'glm-4.5-flash',
     nickname: 'Zhipu GLM-4.5 Flash (Ultra Fast)',
-    apiKey: '', // User key required
-    baseURL: 'https://open.bigmodel.cn/api/paas/v4',
-    supportsWebSearch: false,
+    api_key: '', // User key required
+    base_url: 'https://open.bigmodel.cn/api/paas/v4',
+    supports_web_search: false,
     type: ModelProvider.PRESET,
-    apiProvider: ApiProvider.ZHIPU,
+    api_provider: ApiProvider.ZHIPU,
   },
   {
     id: 'glm-4-flash',
     nickname: 'Zhipu GLM-4 Flash (Free)',
-    apiKey: '', // User key required
-    baseURL: 'https://open.bigmodel.cn/api/paas/v4',
-    supportsWebSearch: false,
+    api_key: '', // User key required
+    base_url: 'https://open.bigmodel.cn/api/paas/v4',
+    supports_web_search: false,
     type: ModelProvider.PRESET,
-    apiProvider: ApiProvider.ZHIPU,
+    api_provider: ApiProvider.ZHIPU,
   },
   {
     id: 'glm-z1-flash',
     nickname: 'Zhipu GLM-Z1 Flash (Reasoning)',
-    apiKey: '', // User key required
-    baseURL: 'https://open.bigmodel.cn/api/paas/v4',
-    supportsWebSearch: false,
+    api_key: '', // User key required
+    base_url: 'https://open.bigmodel.cn/api/paas/v4',
+    supports_web_search: false,
     type: ModelProvider.PRESET,
-    apiProvider: ApiProvider.ZHIPU,
+    api_provider: ApiProvider.ZHIPU,
   },
   {
     id: 'glm-4.6v-flash',
     nickname: 'Zhipu GLM-4.6V Flash (Multimodal)',
-    apiKey: '', // User key required
-    baseURL: 'https://open.bigmodel.cn/api/paas/v4',
-    supportsWebSearch: false,
+    api_key: '', // User key required
+    base_url: 'https://open.bigmodel.cn/api/paas/v4',
+    supports_web_search: false,
     type: ModelProvider.PRESET,
-    apiProvider: ApiProvider.ZHIPU,
+    api_provider: ApiProvider.ZHIPU,
   },
   {
     id: 'deepseek-reasoner',
     nickname: 'DeepSeek R1 (推理模型)',
-    apiKey: '', // User key required
-    baseURL: 'https://api.deepseek.com',
-    supportsWebSearch: false,
+    api_key: '', // User key required
+    base_url: 'https://api.deepseek.com',
+    supports_web_search: false,
     type: ModelProvider.PRESET,
-    apiProvider: ApiProvider.DEEPSEEK,
+    api_provider: ApiProvider.DEEPSEEK,
   },
   {
     id: 'deepseek-chat',
     nickname: 'DeepSeek V3 (快速智能)',
-    apiKey: '', // User key required
-    baseURL: 'https://api.deepseek.com',
-    supportsWebSearch: false,
+    api_key: '', // User key required
+    base_url: 'https://api.deepseek.com',
+    supports_web_search: false,
     type: ModelProvider.PRESET,
-    apiProvider: ApiProvider.DEEPSEEK,
+    api_provider: ApiProvider.DEEPSEEK,
   },
   {
     id: 'llama-3.3-70b-versatile',
     nickname: 'Llama 3.3 70B (Groq - Free/Fast)',
-    apiKey: '', // User key required
-    baseURL: 'https://api.groq.com/openai/v1',
-    supportsWebSearch: false,
+    api_key: '', // User key required
+    base_url: 'https://api.groq.com/openai/v1',
+    supports_web_search: false,
     type: ModelProvider.PRESET,
-    apiProvider: ApiProvider.GROQ,
+    api_provider: ApiProvider.GROQ,
   },
   {
     id: 'mixtral-8x7b-32768',
     nickname: 'Mixtral 8x7B (Groq - Free/Fast)',
-    apiKey: '', // User key required
-    baseURL: 'https://api.groq.com/openai/v1',
-    supportsWebSearch: false,
+    api_key: '', // User key required
+    base_url: 'https://api.groq.com/openai/v1',
+    supports_web_search: false,
     type: ModelProvider.PRESET,
-    apiProvider: ApiProvider.GROQ,
+    api_provider: ApiProvider.GROQ,
   },
   {
     id: 'Qwen/Qwen2.5-72B-Instruct',
     nickname: 'Qwen 2.5 72B (SiliconFlow - Cheap)',
-    apiKey: '', // User key required
-    baseURL: 'https://api.siliconflow.cn/v1',
-    supportsWebSearch: false,
+    api_key: '', // User key required
+    base_url: 'https://api.siliconflow.cn/v1',
+    supports_web_search: false,
     type: ModelProvider.PRESET,
-    apiProvider: ApiProvider.SILICONFLOW,
+    api_provider: ApiProvider.SILICONFLOW,
   },
   {
     id: 'meta-llama/Meta-Llama-3.1-70B-Instruct',
     nickname: 'Llama 3.1 70B (Nebius - High Quality)',
-    apiKey: '', // User key required
-    baseURL: 'https://api.studio.nebius.ai/v1',
-    supportsWebSearch: false,
+    api_key: '', // User key required
+    base_url: 'https://api.studio.nebius.ai/v1',
+    supports_web_search: false,
     type: ModelProvider.PRESET,
-    apiProvider: ApiProvider.NEBIUS,
+    api_provider: ApiProvider.NEBIUS,
   },
   {
     id: 'gemini-2.0-flash',
     nickname: 'Google Gemini 2.0 Flash',
-    apiKey: '', // Key handled server-side or client-side
-    supportsWebSearch: true,
+    api_key: '', // Key handled server-side or client-side
+    supports_web_search: true,
     type: ModelProvider.PRESET,
-    apiProvider: ApiProvider.GEMINI,
+    api_provider: ApiProvider.GEMINI,
   },
   {
     id: 'gemini-1.5-pro',
     nickname: 'Google Gemini 1.5 Pro',
-    apiKey: '',
-    supportsWebSearch: true,
+    api_key: '',
+    supports_web_search: true,
     type: ModelProvider.PRESET,
-    apiProvider: ApiProvider.GEMINI,
+    api_provider: ApiProvider.GEMINI,
   },
   {
     id: 'claude-3-5-sonnet-latest',
     nickname: 'Claude 3.5 Sonnet',
-    apiKey: '', // User key required
-    supportsWebSearch: false,
+    api_key: '', // User key required
+    supports_web_search: false,
     type: ModelProvider.PRESET,
-    apiProvider: ApiProvider.ANTHROPIC,
+    api_provider: ApiProvider.ANTHROPIC,
   },
   {
     id: 'gpt-4o',
     nickname: 'OpenAI GPT-4o',
-    apiKey: '', // User key required
-    supportsWebSearch: false,
+    api_key: '', // User key required
+    supports_web_search: false,
     type: ModelProvider.PRESET,
-    apiProvider: ApiProvider.OPENAI,
+    api_provider: ApiProvider.OPENAI,
   },
   {
     id: 'gpt-4o-mini',
     nickname: 'OpenAI GPT-4o Mini',
-    apiKey: '',
-    supportsWebSearch: false,
+    api_key: '',
+    supports_web_search: false,
     type: ModelProvider.PRESET,
-    apiProvider: ApiProvider.OPENAI,
+    api_provider: ApiProvider.OPENAI,
   },
   {
     id: 'o1-mini',
     nickname: 'OpenAI o1-mini (Reasoning)',
-    apiKey: '',
-    supportsWebSearch: false,
+    api_key: '',
+    supports_web_search: false,
     type: ModelProvider.PRESET,
-    apiProvider: ApiProvider.OPENAI,
+    api_provider: ApiProvider.OPENAI,
   }
 ];
 
@@ -273,10 +273,16 @@ Start writing the article immediately. Do not include any pre-text like "Here is
 `;
 
 export const TRANSLATE_PROMPT_TEMPLATE = `
-Translate the following text into natural, fluent Chinese.
-Return ONLY the translation. No explanations.
+You are a professional translator and localization expert.
+Task: Translate the following content into natural, fluent Chinese.
 
-**TEXT:**
+**CRITICAL INSTRUCTIONS:**
+1.  **Strictly Preserve Markdown**: Do NOT change, remove, or translate any Markdown syntax (headers #, bold **, links [], code blocks, images ![]).
+2.  **Preserve HTML**: Do NOT translate or remove HTML tags (<img>, <div>, <span>).
+3.  **Tone**: Professional, engaging, and native-sounding.
+4.  **No Commentary**: Return ONLY the translated content. Do not say "Here is the translation".
+
+**CONTENT TO TRANSLATE:**
 {textToTranslate}
 `;
 

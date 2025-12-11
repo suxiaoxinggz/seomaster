@@ -33,7 +33,7 @@ const WordPressForm: React.FC<{ config: any; setConfig: (config: any) => void, c
     const selectedTagIds = useMemo(() => new Set<number>((String(config.tags || '')).split(',').map((s: string) => parseInt(s.trim(), 10)).filter(n => !isNaN(n))), [config.tags]);
 
     const handleFetchTerms = async () => {
-        const channelToFetch = channel || { id: 'temp', name: 'temp', platform: PublishingPlatform.WORDPRESS, config };
+        const channelToFetch = channel || { id: 'temp', name: 'temp', platform: PublishingPlatform.WORDPRESS, config, is_default: false };
 
         if (!channelToFetch.config.apiUrl || !channelToFetch.config.username || !channelToFetch.config.password) {
             setError("Please fill in API URL, Username, and Application Password first.");
@@ -268,6 +268,7 @@ const ChannelModal: React.FC<{
                 name: channel.name,
                 platform: channel.platform || PublishingPlatform.WORDPRESS,
                 config: channel.config || {},
+                is_default: channel.is_default || false
             });
         }
     };
@@ -381,15 +382,15 @@ const PublishingQueueView: React.FC<{ setPage: (page: Page) => void }> = ({ setP
 
             // Just-in-time data hydration
             let fullDataItem;
-            switch (queueItem.sourceType) {
+            switch (queueItem.source_type) {
                 case 'article':
-                    fullDataItem = articles.find(a => a.id === queueItem.sourceId);
+                    fullDataItem = articles.find(a => a.id === queueItem.source_id);
                     break;
                 case 'post':
-                    fullDataItem = postsToPublish.find(p => p.id === queueItem.sourceId);
+                    fullDataItem = postsToPublish.find(p => p.id === queueItem.source_id);
                     break;
                 case 'image_set':
-                    fullDataItem = savedImageSets.find(s => s.id === queueItem.sourceId);
+                    fullDataItem = savedImageSets.find(s => s.id === queueItem.source_id);
                     break;
             }
 
@@ -406,7 +407,7 @@ const PublishingQueueView: React.FC<{ setPage: (page: Page) => void }> = ({ setP
 
             try {
                 const result = await publishItem(itemWithData, channel);
-                updateItemInState(queueItem.sourceId, queueItem.sourceType, result);
+                updateItemInState(queueItem.source_id, queueItem.source_type, result);
                 setPublishingQueue(prev => prev.map(q => q.id === queueItem.id ? { ...q, status: 'success', log: result.log } : q));
 
             } catch (error: any) {
@@ -418,7 +419,7 @@ const PublishingQueueView: React.FC<{ setPage: (page: Page) => void }> = ({ setP
                     publishedAt: new Date().toISOString(),
                     log: errorMessage,
                 };
-                updateItemInState(queueItem.sourceId, queueItem.sourceType, failedDestination);
+                updateItemInState(queueItem.source_id, queueItem.source_type, failedDestination);
                 setPublishingQueue(prev => prev.map(q => q.id === queueItem.id ? { ...q, status: 'failed', log: errorMessage } : q));
             }
         }
@@ -473,7 +474,7 @@ const PublishingQueueView: React.FC<{ setPage: (page: Page) => void }> = ({ setP
                             />
                             <div className="flex-1 min-w-0">
                                 <p className="font-semibold text-white truncate">{item.name}</p>
-                                <p className="text-sm text-gray-400 capitalize">{item.sourceType.replace('_', ' ')}</p>
+                                <p className="text-sm text-gray-400 capitalize">{item.source_type.replace('_', ' ')}</p>
                             </div>
                             <div className="flex flex-col items-end flex-shrink-0">
                                 {item.status === 'publishing' && <Spinner size="sm" />}

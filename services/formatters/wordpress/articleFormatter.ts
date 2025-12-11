@@ -14,14 +14,14 @@ export interface WordPressArticlePayload {
  * @returns A standardized WordPressArticlePayload object.
  */
 export function formatArticleForWordPress(data: Article): WordPressArticlePayload {
-    const { title, content: markdownContent, keywordContext } = data;
+    const { title, content: markdownContent, keyword_context } = data;
 
     const articleBodyHtml = markdownToHtml(markdownContent);
-    
+
     let finalContent = `<div>${articleBodyHtml}</div>`;
 
-    if (keywordContext && keywordContext.trim()) {
-        const sanitizedContext = sanitizeTextForHtml(keywordContext);
+    if (keyword_context && keyword_context.trim()) {
+        const sanitizedContext = sanitizeTextForHtml(keyword_context);
         const keywordContextHtml = `
             <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; font-family: sans-serif;">
                 <strong style="display: block; margin-bottom: 10px; font-size: 1.1em; color: #1d2327;">关键词上下文参考:</strong>

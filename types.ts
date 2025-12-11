@@ -20,6 +20,7 @@ export enum ApiProvider {
   SILICONFLOW = 'SiliconFlow (Qwen/DeepSeek)',
   OPENROUTER = 'OpenRouter',
   MODELSCOPE = 'ModelScope',
+  VOLCENGINE = 'Volcano Engine (Ark)',
   NEBIUS = 'Nebius AI',
   OPENAI_COMPATIBLE = 'OpenAI Compatible (Any)',
   MOCK = 'Mock Data',
@@ -30,6 +31,7 @@ export enum TranslationProvider {
   DEEPL = 'DeepL API',
   GOOGLE = 'Google Translate API',
   MICROSOFT = 'Microsoft Translator',
+  LIBRE = 'LibreTranslate (Open Source)',
 }
 
 // ... (Existing Interfaces kept as is) ...
@@ -39,6 +41,8 @@ export interface TranslationApiKeys {
   [TranslationProvider.GOOGLE]: string;
   [TranslationProvider.MICROSOFT]: string;
   'microsoft_region'?: string; // Microsoft requires region
+  'libre_base_url'?: string;
+  'libre_api_key'?: string;
 }
 
 // --- NEW: SEO Strategy Types ---
@@ -110,6 +114,11 @@ export interface KeywordMetric {
 
   // Visuals
   trend_history: number[]; // Array of last 12 months volume for Sparklines
+  monthly_searches?: SearchVolumeTrend[]; // Detailed monthly history
+
+  // Demographics (Clickstream)
+  clickstream_age_distribution?: Record<string, number>;
+  clickstream_gender_distribution?: Record<string, number>;
 
   updated_at: string;
 }
@@ -154,6 +163,12 @@ export interface AiVisibilityData {
   sources: AiSource[]; // Where the LLM got its info
   summary: string; // Brief summary of the LLM's answer
   sentiment: 'positive' | 'neutral' | 'negative';
+
+  // NEW: DataForSEO AI Specific Metrics
+  ai_search_volume?: number; // Estimated keyword usage in AI tools
+  ai_trend_history?: SearchVolumeTrend[]; // Historical AI search volume
+  ai_overview_text?: string; // Full text of the AI answer (if available)
+  updated_at?: string;
 }
 
 // 4. Content Generation (DataForSEO V3)
@@ -395,6 +410,8 @@ export interface Article {
   sub_project_id: string;
   created_at: string;
   model_used: string;
+  language?: string; // e.g. 'en', 'zh-CN'
+  source_article_id?: string; // localized from this ID
   published_destinations: PublishedDestination[];
 }
 
@@ -411,6 +428,8 @@ export enum ImageSource {
   OPENROUTER = 'OpenRouter',
   PIXABAY = 'Pixabay (Stock)',
   UNSPLASH = 'Unsplash (Stock)',
+  MODELSCOPE = 'ModelScope (AIGC)',
+  VOLCENGINE = 'Volcano Engine (Dream)',
 }
 
 export interface ImageApiKeys {
@@ -424,9 +443,13 @@ export interface ImageApiKeys {
   [ImageSource.STABILITY]: string;
   [ImageSource.REPLICATE]: string;
   [ImageSource.HUGGINGFACE]: string;
+  [ImageSource.MODELSCOPE]: string;
   [ImageSource.OPENROUTER]: string;
+  [ImageSource.VOLCENGINE]: string;
   'cloudflare_account_id': string;
   'cloudflare_token': string;
+  'r2_access_key_id': string;
+  'r2_secret_access_key': string;
 }
 
 export interface ImageObject {
@@ -572,8 +595,33 @@ export interface NebiusParams extends BaseImageParams {
   seed?: number;
 }
 
+export interface ModelScopeImageParams extends BaseImageParams {
+  model: string;
+  size?: '1024x1024' | '768x1024' | '1024x768' | '720x1280' | '1280x720'; // Common resolutions
+  seed?: number;
+  steps?: number; // 1-100
+  guidance?: number; // 1.5-20
+  image_url?: string; // For image-to-image
+  loras?: string | Record<string, number>;
+}
 
-export type ImageSearchParams = PixabayParams | UnsplashParams | KolarsParams | PollinationsParams | DalleParams | StabilityParams | ReplicateParams | HuggingFaceParams | CloudflareParams | OpenRouterParams | NebiusParams | ZhipuImageParams;
+
+export interface VolcEngineImageParams extends BaseImageParams {
+  model: string;
+  prompt: string;
+  negative_prompt: string; // Required by BaseImageParams
+  width?: number; // 64-2048
+  height?: number; // 64-2048
+  steps?: number; // 1-100, default 30
+  guidance?: number; // 1.5-20, default 3.5
+  seed?: number; // 0 to 2^31-1
+  loras?: string | Record<string, number>;
+  n?: number; // 1-4
+  size?: string; // Optional helper for UI
+}
+
+
+export type ImageSearchParams = PixabayParams | UnsplashParams | KolarsParams | PollinationsParams | DalleParams | StabilityParams | ReplicateParams | HuggingFaceParams | CloudflareParams | OpenRouterParams | NebiusParams | ZhipuImageParams | ModelScopeImageParams | VolcEngineImageParams | { [key: string]: any };
 
 
 export enum PublishingPlatform {
@@ -596,21 +644,52 @@ export interface PublishingChannel {
   user_id?: string;
   name: string;
   platform: PublishingPlatform;
-  config: Record<string, any>;
-  is_default?: boolean;
+  config: any;
+  is_default: boolean;
+}
+
+// --- NEW SCHEMA TYPES ---
+
+export interface DbImage {
+  id: string;
+  user_id: string;
+  article_id?: string;
+  storage_provider: 'r2' | 'supabase' | 'base64_fallback' | 'external';
+  storage_path?: string;
+  public_url: string;
+  prompt?: string;
+  metadata?: any;
+  created_at: string;
+}
+
+export interface DbKeyword {
+  id: string;
+  user_id: string;
+  sub_project_id?: string;
+  text: string;
+  metadata?: any;
+  created_at: string;
+}
+
+export interface DbArticleKeyword {
+  article_id: string;
+  keyword_id: string;
 }
 
 
 export type Page =
   | 'dashboard'
   | 'keyword-map'
+  | 'seo-data'
+  | 'seo-assets'
+  | 'seo-strategy'
+  | 'content-create'
   | 'outline-article'
   | 'image-text'
-  | 'localization'
   | 'publish'
   | 'settings'
-  | 'seo-data'
-  | 'seo-strategy'; // NEW
+  | 'localization'
+  | 'account';
 
 
 export type PublishableItemType = 'article' | 'post' | 'image_set';
@@ -628,7 +707,7 @@ export interface PublishingItem {
 
 // --- NEW NAVIGATION PAYLOAD ---
 export interface NavigationPayload {
-  type: 'draft_article' | 'create_images' | 'change_seo_tab';
+  type: 'draft_article' | 'create_images' | 'change_seo_tab' | 'load_snapshot';
   data: {
     context?: string; // For drafting article
     modelId?: string; // For drafting article
@@ -636,6 +715,7 @@ export interface NavigationPayload {
     sourceArticleId?: string; // For linking back to update the article
     projectContext?: { parentId: string; subId: string }; // Context for saving
     targetTab?: string; // For SEO Data Manager navigation
+    snapshot?: any; // For loading saved SEO snapshot (using any to avoid circular dependency or forward decl issues if simple)
   };
 }
 

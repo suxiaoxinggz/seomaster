@@ -6,11 +6,16 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.948.0",
     "@supabase/supabase-js": "2",
     "@tanstack/react-query": "^5.90.12",
+    "@types/dompurify": "^3.0.5",
+    "dompurify": "^3.3.1",
     "jose": "5.2.4",
     "jszip": "3.10.1",
     "lucide-react": "^0.559.0",
@@ -21,15 +26,20 @@
     "zod": "3.22.4"
   },
   "devDependencies": {
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
     "@types/node": "^22.14.0",
+    "@types/react": "^18.2.55",
+    "@types/react-dom": "^18.2.19",
     "@types/react-router-dom": "^5.3.3",
     "@vitejs/plugin-react": "^5.0.0",
+    "autoprefixer": "^10.4.17",
+    "jsdom": "^27.3.0",
+    "postcss": "^8.4.35",
+    "tailwindcss": "^3.4.1",
     "typescript": "~5.8.2",
     "vite": "^6.2.0",
-    "tailwindcss": "^3.4.1",
-    "postcss": "^8.4.35",
-    "autoprefixer": "^10.4.17",
-    "@types/react": "^18.2.55",
-    "@types/react-dom": "^18.2.19"
+    "vitest": "^4.0.15"
   }
 }

@@ -10,6 +10,7 @@ import Button from './ui/Button';
 import { TrashIcon, DownloadIcon, PublishIcon } from './icons';
 import Checkbox from './ui/Checkbox';
 import Modal from './ui/Modal';
+import DOMPurify from 'dompurify';
 import StatusBadgeGrid from './StatusBadgeGrid';
 
 // Helper to trigger HTML file download
@@ -205,7 +206,7 @@ export const PostsToPublishView: React.FC = () => {
                         <div className="p-4 bg-white rounded-md flex-grow overflow-y-auto">
                             <div
                                 className="prose max-w-none"
-                                dangerouslySetInnerHTML={{ __html: viewingPost.html_content }}
+                                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(viewingPost.html_content) }}
                             />
                         </div>
                     </div>

@@ -1,8 +1,9 @@
+
 import React, { useState, useContext, useEffect, useCallback, useMemo } from 'react';
 import { AppContext } from '../context/AppContext';
 import { ImageSource, ImageApiKeys, ImageObject, Article, PixabayParams, UnsplashParams, KolarsParams, PollinationsParams, DalleParams, StabilityParams, SavedImageSet, PostToPublish, Project, KeywordSubProject, CloudflareParams, OpenRouterParams, NebiusParams, ZhipuImageParams } from '../types';
 import useLocalStorage from '../hooks/useLocalStorage';
-import { fetchPixabayImages, fetchUnsplashImages, fetchKolorsImages, fetchPollinationsImages, fetchReplicateImages, fetchHuggingFaceImages, fetchCloudflareImages, fetchOpenRouterImages, fetchNebiusImages, fetchZhipuImages, fetchAvailableImageModels, convertUrlToBase64 } from '../services/imageService';
+import { fetchPixabayImages, fetchUnsplashImages, fetchKolorsImages, fetchPollinationsImages, fetchReplicateImages, fetchHuggingFaceImages, fetchCloudflareImages, fetchOpenRouterImages, fetchNebiusImages, fetchZhipuImages, fetchModelScopeImages, fetchVolcEngineImages, fetchOpenAIImages, fetchStabilityImages, fetchAvailableImageModels, convertUrlToBase64, uploadImageToR2 } from '../services/imageService';
 import Button from './ui/Button';
 import Card from './ui/Card';
 import Input from './ui/Input';
@@ -21,7 +22,9 @@ const ApiSettingsModal: React.FC<{
     onClose: () => void;
     apiKeys: ImageApiKeys;
     onSave: (keys: ImageApiKeys) => void;
-}> = ({ isOpen, onClose, apiKeys, onSave }) => {
+    activeSource: ImageSource;
+    onSelectSource: (source: ImageSource) => void;
+}> = ({ isOpen, onClose, apiKeys, onSave, activeSource, onSelectSource }) => {
     const [keys, setKeys] = useState(apiKeys);
     const [activeTab, setActiveTab] = useState<'generation' | 'stock'>('generation');
     // Track visibility of passwords per field
@@ -40,20 +43,35 @@ const ApiSettingsModal: React.FC<{
         setVisibleFields(prev => ({ ...prev, [key]: !prev[key] }));
     };
 
-    const renderField = (label: string, key: keyof ImageApiKeys | 'microsoft_region', link: string, placeholder: string) => {
+    const renderField = (label: string, key: keyof ImageApiKeys | 'microsoft_region', link: string, placeholder: string, providerEnum?: ImageSource) => {
         const isVisible = visibleFields[key];
+        const isCurrent = providerEnum && activeSource === providerEnum;
+
         return (
-            <div className="bg-gray-900/50 p-3 rounded-lg border border-gray-700/50 hover:border-gray-600 transition-colors">
+            <div className={`bg - gray - 900 / 50 p - 3 rounded - lg border transition - colors ${isCurrent ? 'border-blue-500/50 bg-blue-900/10' : 'border-gray-700/50 hover:border-gray-600'} `}>
                 <div className="flex justify-between items-center mb-1.5">
-                    <label className="block text-sm font-medium text-gray-300">{label}</label>
-                    <a
-                        href={link}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-xs text-blue-400 hover:text-blue-300 hover:underline flex items-center transition-colors"
-                    >
-                        Get API Key <ExternalLinkIcon className="w-3 h-3 ml-1" />
-                    </a>
+                    <div className="flex items-center gap-2">
+                        <label className="block text-sm font-medium text-gray-300">{label}</label>
+                        {isCurrent && <span className="text-[10px] bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded border border-blue-500/30">Active</span>}
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <a
+                            href={link}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-xs text-blue-400 hover:text-blue-300 hover:underline flex items-center transition-colors"
+                        >
+                            Get API Key <ExternalLinkIcon className="w-3 h-3 ml-1" />
+                        </a>
+                        {providerEnum && !isCurrent && (
+                            <button
+                                onClick={() => onSelectSource(providerEnum)}
+                                className="text-[10px] bg-gray-800 hover:bg-blue-600 hover:text-white text-gray-400 px-2 py-0.5 rounded border border-gray-600 hover:border-blue-500 transition-all"
+                            >
+                                Use This
+                            </button>
+                        )}
+                    </div>
                 </div>
                 <div className="relative">
                     <input
@@ -79,13 +97,13 @@ const ApiSettingsModal: React.FC<{
         <Modal isOpen={isOpen} onClose={onClose} title="Image Services Configuration">
             <div className="flex border-b border-gray-700 mb-6">
                 <button
-                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'generation' ? 'text-blue-400 border-blue-400' : 'text-gray-400 border-transparent hover:text-gray-200'}`}
+                    className={`px - 4 py - 2 text - sm font - medium border - b - 2 transition - colors ${activeTab === 'generation' ? 'text-blue-400 border-blue-400' : 'text-gray-400 border-transparent hover:text-gray-200'} `}
                     onClick={() => setActiveTab('generation')}
                 >
                     AI Generation
                 </button>
                 <button
-                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'stock' ? 'text-blue-400 border-blue-400' : 'text-gray-400 border-transparent hover:text-gray-200'}`}
+                    className={`px - 4 py - 2 text - sm font - medium border - b - 2 transition - colors ${activeTab === 'stock' ? 'text-blue-400 border-blue-400' : 'text-gray-400 border-transparent hover:text-gray-200'} `}
                     onClick={() => setActiveTab('stock')}
                 >
                     Stock Libraries
@@ -95,43 +113,79 @@ const ApiSettingsModal: React.FC<{
             <div className="space-y-6 h-[500px] overflow-y-auto pr-2 custom-scrollbar">
                 {activeTab === 'generation' && (
                     <>
-                        <div className="bg-gradient-to-r from-blue-900/20 to-indigo-900/20 border border-blue-500/20 p-4 rounded-lg text-sm text-blue-200 flex items-start gap-3">
-                            <div className="p-1 bg-blue-500/20 rounded-full flex-shrink-0"><SettingsIcon className="w-4 h-4 text-blue-400" /></div>
-                            <div>
-                                <strong className="block text-blue-100 mb-1">Built-in Free Provider</strong>
-                                Pollinations.AI (Flux/SD) is enabled by default and requires no API key.
+                        <div className={`bg - gradient - to - r from - blue - 900 / 20 to - indigo - 900 / 20 border p - 4 rounded - lg text - sm text - blue - 200 flex items - start justify - between gap - 3 ${activeSource === ImageSource.POLLINATIONS ? 'border-blue-500/50' : 'border-blue-500/20'} `}>
+                            <div className="flex items-start gap-3">
+                                <div className="p-1 bg-blue-500/20 rounded-full flex-shrink-0"><SettingsIcon className="w-4 h-4 text-blue-400" /></div>
+                                <div>
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <strong className="block text-blue-100">Built-in Free Provider</strong>
+                                        {activeSource === ImageSource.POLLINATIONS && <span className="text-[10px] bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded border border-blue-500/30">Active</span>}
+                                    </div>
+                                    Pollinations.AI (Flux/SD) is enabled by default and requires no API key.
+                                </div>
                             </div>
+                            {activeSource !== ImageSource.POLLINATIONS && (
+                                <button
+                                    onClick={() => onSelectSource(ImageSource.POLLINATIONS)}
+                                    className="text-[10px] bg-blue-900/50 hover:bg-blue-600 hover:text-white text-blue-200 px-3 py-1 rounded border border-blue-500/30 hover:border-blue-400 transition-all flex-shrink-0"
+                                >
+                                    Use This
+                                </button>
+                            )}
                         </div>
 
                         <div>
                             <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">High Performance / Free Tier</h4>
                             <div className="space-y-3">
-                                {renderField("Nebius AI (Flux.1)", ImageSource.NEBIUS, "https://studio.nebius.ai/settings/api-keys", "Generate fast Flux images")}
-                                {renderField("SiliconFlow (Kolors)", ImageSource.KOLARS, "https://cloud.siliconflow.cn/", "sk-...")}
-                                {renderField("Zhipu AI (CogView)", ImageSource.ZHIPU_COGVIEW, "https://open.bigmodel.cn/usercenter/apikeys", "API Key (Key.Secret)")}
+                                {renderField("Nebius AI (Flux.1)", ImageSource.NEBIUS, "https://studio.nebius.ai/settings/api-keys", "Generate fast Flux images", ImageSource.NEBIUS)}
+                                {renderField("SiliconFlow (Kolors)", ImageSource.KOLARS, "https://cloud.siliconflow.cn/", "sk-...", ImageSource.KOLARS)}
+                                {renderField("Zhipu AI (CogView)", ImageSource.ZHIPU_COGVIEW, "https://open.bigmodel.cn/usercenter/apikeys", "API Key (Key.Secret)", ImageSource.ZHIPU_COGVIEW)}
+                                {renderField("Volcano Engine (Dream)", ImageSource.VOLCENGINE, "https://console.volcengine.com/ark", "API Key (Ark/Dream)", ImageSource.VOLCENGINE)}
                             </div>
                         </div>
 
                         <div>
                             <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 pt-2 border-t border-gray-800">Managed APIs</h4>
                             <div className="space-y-3">
-                                {renderField("OpenAI (DALL-E 3)", ImageSource.DALLE3, "https://platform.openai.com/api-keys", "sk-...")}
-                                {renderField("Stability AI (SD 3.5)", ImageSource.STABILITY, "https://platform.stability.ai/account/keys", "sk-...")}
+                                {renderField("OpenAI (DALL-E 3)", ImageSource.DALLE3, "https://platform.openai.com/api-keys", "sk-...", ImageSource.DALLE3)}
+                                {renderField("Stability AI (SD 3.5)", ImageSource.STABILITY, "https://platform.stability.ai/account/keys", "sk-...", ImageSource.STABILITY)}
                             </div>
                         </div>
 
                         <div>
                             <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 pt-2 border-t border-gray-800">Serverless & Open Models</h4>
                             <div className="space-y-3">
-                                {renderField("Replicate API Token", ImageSource.REPLICATE, "https://replicate.com/account/api-tokens", "r8_...")}
-                                {renderField("Hugging Face Access Token", ImageSource.HUGGINGFACE, "https://huggingface.co/settings/tokens", "hf_...")}
-                                {renderField("OpenRouter API Key", ImageSource.OPENROUTER, "https://openrouter.ai/keys", "sk-or-...")}
+                                {renderField("Replicate API Token", ImageSource.REPLICATE, "https://replicate.com/account/api-tokens", "r8_...", ImageSource.REPLICATE)}
+                                {renderField("Hugging Face Access Token", ImageSource.HUGGINGFACE, "https://huggingface.co/settings/tokens", "hf_...", ImageSource.HUGGINGFACE)}
+                                {renderField("OpenRouter API Key", ImageSource.OPENROUTER, "https://openrouter.ai/keys", "sk-or-...", ImageSource.OPENROUTER)}
 
-                                <div className="bg-gray-800/30 p-3 rounded-lg border border-gray-700/50">
-                                    <h5 className="text-sm font-semibold text-gray-300 mb-2">Cloudflare Workers AI</h5>
+                                <div className={`bg - gray - 900 / 50 p - 3 rounded - lg border transition - colors ${activeSource === ImageSource.CLOUDFLARE ? 'border-blue-500/50 bg-blue-900/10' : 'border-gray-700/50 hover:border-gray-600'} `}>
+                                    <div className="flex justify-between items-center mb-2">
+                                        <div className="flex items-center gap-2">
+                                            <h5 className="text-sm font-semibold text-gray-300">Cloudflare Workers AI</h5>
+                                            {activeSource === ImageSource.CLOUDFLARE && <span className="text-[10px] bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded border border-blue-500/30">Active</span>}
+                                        </div>
+                                        {activeSource !== ImageSource.CLOUDFLARE && (
+                                            <button
+                                                onClick={() => onSelectSource(ImageSource.CLOUDFLARE)}
+                                                className="text-[10px] bg-gray-800 hover:bg-blue-600 hover:text-white text-gray-400 px-2 py-0.5 rounded border border-gray-600 hover:border-blue-500 transition-all"
+                                            >
+                                                Use This
+                                            </button>
+                                        )}
+                                    </div>
                                     <div className="space-y-3">
                                         {renderField("Account ID", 'cloudflare_account_id', "https://dash.cloudflare.com", "Account ID")}
-                                        {renderField("API Token", 'cloudflare_token', "https://dash.cloudflare.com/profile/api-tokens", "Global or Workers AI Token")}
+                                        {renderField("Workers AI Token", 'cloudflare_token', "https://dash.cloudflare.com/profile/api-tokens", "Global or Workers AI Token")}
+
+                                        <div className="pt-2 border-t border-gray-700 mt-2">
+                                            <h6 className="text-xs font-semibold text-gray-400 mb-2">R2 Storage (Optional)</h6>
+                                            <p className="text-[10px] text-gray-500 mb-2">Required for 'Optimization' storage strategy. Leave empty to use Database storage.</p>
+                                            <div className="space-y-2">
+                                                {renderField("R2 Access Key ID", 'r2_access_key_id', "https://dash.cloudflare.com/?to=/:account/r2/api-tokens", "Access Key ID")}
+                                                {renderField("R2 Secret Access Key", 'r2_secret_access_key', "https://dash.cloudflare.com/?to=/:account/r2/api-tokens", "Secret Access Key")}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -144,8 +198,8 @@ const ApiSettingsModal: React.FC<{
                         <div className="bg-gray-800/50 p-4 rounded-lg text-sm text-gray-400">
                             Connect stock image libraries to search and insert real photos into your articles.
                         </div>
-                        {renderField("Pixabay API Key", ImageSource.PIXABAY, "https://pixabay.com/api/docs/", "Enter Pixabay API Key")}
-                        {renderField("Unsplash Access Key", ImageSource.UNSPLASH, "https://unsplash.com/developers", "Enter Unsplash Access Key")}
+                        {renderField("Pixabay API Key", ImageSource.PIXABAY, "https://pixabay.com/api/docs/", "Enter Pixabay API Key", ImageSource.PIXABAY)}
+                        {renderField("Unsplash Access Key", ImageSource.UNSPLASH, "https://unsplash.com/developers", "Enter Unsplash Access Key", ImageSource.UNSPLASH)}
                     </div>
                 )}
             </div>
@@ -167,19 +221,19 @@ const ImageCard: React.FC<{
     <div className="relative group w-full h-full rounded-lg overflow-hidden border border-white/5 bg-gray-900 shadow-md transition-transform hover:scale-[1.02]">
         <div className="absolute top-2 left-2 z-20 cursor-default" onClick={(e) => e.stopPropagation()}>
             <Checkbox
-                id={`img-select-${image.id}`}
+                id={`img - select - ${image.id} `}
                 checked={isSelected}
                 onChange={() => onToggleSelect(image.id)}
                 className="transform scale-110"
-                aria-label={`Select image ${image.alt_description}`}
+                aria-label={`Select image ${image.alt_description} `}
             />
         </div>
         <div
             className="w-full h-full cursor-pointer"
             onClick={() => onViewImage(image)}
         >
-            <div className={`absolute inset-0 bg-blue-600/20 transition-opacity ${isSelected ? 'opacity-100' : 'opacity-0'}`}></div>
-            <div className={`absolute inset-0 border-2 transition-all ${isSelected ? 'border-blue-500' : 'border-transparent'}`}></div>
+            <div className={`absolute inset - 0 bg - blue - 600 / 20 transition - opacity ${isSelected ? 'opacity-100' : 'opacity-0'} `}></div>
+            <div className={`absolute inset - 0 border - 2 transition - all ${isSelected ? 'border-blue-500' : 'border-transparent'} `}></div>
 
             <img src={image.url_regular} alt={image.alt_description} className="w-full h-full object-cover" loading="lazy" />
 
@@ -199,7 +253,7 @@ const ImageControls: React.FC<{
     apiKeys: ImageApiKeys;
 }> = ({ source, setSource, params, setParams, apiKeys }) => {
     // Determine which inputs to show based on source
-    const showNegative = [ImageSource.KOLARS, ImageSource.POLLINATIONS, ImageSource.STABILITY, ImageSource.REPLICATE, ImageSource.HUGGINGFACE, ImageSource.CLOUDFLARE, ImageSource.NEBIUS].includes(source);
+    const showNegative = [ImageSource.KOLARS, ImageSource.POLLINATIONS, ImageSource.STABILITY, ImageSource.REPLICATE, ImageSource.HUGGINGFACE, ImageSource.CLOUDFLARE, ImageSource.NEBIUS, ImageSource.MODELSCOPE, ImageSource.VOLCENGINE].includes(source);
     const showCount = [ImageSource.KOLARS, ImageSource.PIXABAY, ImageSource.UNSPLASH, ImageSource.POLLINATIONS, ImageSource.OPENROUTER, ImageSource.NEBIUS].includes(source);
 
     // Model Fetching State
@@ -217,7 +271,7 @@ const ImageControls: React.FC<{
                 alert("No models found or empty list returned.");
             }
         } catch (e) {
-            alert(`Failed to fetch models: ${(e as Error).message}`);
+            alert(`Failed to fetch models: ${(e as Error).message} `);
         } finally {
             setIsFetchingModels(false);
         }
@@ -231,6 +285,8 @@ const ImageControls: React.FC<{
 
             <Select label="Provider" value={source} onChange={(e) => { setSource(e.target.value as ImageSource); setFetchedModels([]); }}>
                 <optgroup label="AI Generation (High Quality)">
+                    <option value={ImageSource.MODELSCOPE}>ModelScope (AIGC - New)</option>
+                    <option value={ImageSource.VOLCENGINE}>Volcano Engine (Dream AI - New)</option>
                     <option value={ImageSource.NEBIUS}>Flux.1 (Nebius AI - Free/Cheap)</option>
                     <option value={ImageSource.POLLINATIONS}>Flux.1 / SDXL (Pollinations - Free)</option>
                     <option value={ImageSource.KOLARS}>Kolors (SiliconFlow)</option>
@@ -366,8 +422,8 @@ const ImageControls: React.FC<{
                     </div>
                 )}
 
-                {/* Generic Model Handler for Replicate, Cloudflare, OpenRouter, HF */}
-                {[ImageSource.REPLICATE, ImageSource.HUGGINGFACE, ImageSource.CLOUDFLARE, ImageSource.OPENROUTER].includes(source) && (
+                {/* Generic Model Handler for Replicate, Cloudflare, OpenRouter, HF, ModelScope */}
+                {[ImageSource.REPLICATE, ImageSource.HUGGINGFACE, ImageSource.CLOUDFLARE, ImageSource.OPENROUTER, ImageSource.MODELSCOPE].includes(source) && (
                     <div className="space-y-3">
                         {isFetchable && (
                             <div className="flex justify-end -mb-1">
@@ -423,6 +479,45 @@ const ImageControls: React.FC<{
                             </div>
                         )}
 
+
+
+                        {source === ImageSource.MODELSCOPE && (
+                            <div className="space-y-2">
+                                <Select label="Size" value={params.size} onChange={e => setParams({ ...params, size: e.target.value })}>
+                                    <option value="1024x1024">1:1 (1024x1024)</option>
+                                    <option value="768x1024">3:4 (768x1024)</option>
+                                    <option value="1024x768">4:3 (1024x768)</option>
+                                    <option value="720x1280">9:16 (720x1280)</option>
+                                    <option value="1280x720">16:9 (1280x720)</option>
+                                </Select>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <Input label="Steps (1-100)" type="number" min="1" max="100" value={params.steps} onChange={e => setParams({ ...params, steps: parseInt(e.target.value) })} />
+                                    <Input label="Guidance (1.5-20)" type="number" value={params.guidance} onChange={e => setParams({ ...params, guidance: parseFloat(e.target.value) })} />
+                                </div>
+                                <Input label="Seed (-1 random)" type="number" value={params.seed} onChange={e => setParams({ ...params, seed: parseInt(e.target.value) })} />
+                            </div>
+                        )}
+
+                        {source === ImageSource.VOLCENGINE && (
+                            <div className="space-y-2">
+                                <Select label="Model" value={params.model} onChange={e => setParams({ ...params, model: e.target.value })}>
+                                    <option value="seedream-4.0">SeaDream 4.0 (Recommended)</option>
+                                    <option value="seedream-edit-3.0">SeaDream Edit 3.0</option>
+                                </Select>
+                                <Select label="Size" value={params.size} onChange={e => setParams({ ...params, size: e.target.value })}>
+                                    <option value="1024x1024">1:1 (1024x1024)</option>
+                                    <option value="768x1024">3:4 (768x1024)</option>
+                                    <option value="1024x768">4:3 (1024x768)</option>
+                                    <option value="720x1280">9:16 (720x1280)</option>
+                                    <option value="1280x720">16:9 (1280x720)</option>
+                                </Select>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <Input label="Steps (1-100)" type="number" min="1" max="100" value={params.steps} onChange={e => setParams({ ...params, steps: parseInt(e.target.value) })} />
+                                    <Input label="Guidance (1.5-20)" type="number" value={params.guidance} onChange={e => setParams({ ...params, guidance: parseFloat(e.target.value) })} />
+                                </div>
+                            </div>
+                        )}
+
                         {source === ImageSource.CLOUDFLARE && (
                             <div className="grid grid-cols-2 gap-2">
                                 <Input label="Steps (1-50)" type="number" min="1" max="50" value={params.num_steps} onChange={e => setParams({ ...params, num_steps: parseInt(e.target.value) })} />
@@ -452,9 +547,13 @@ const ImageTextProcessor: React.FC = () => {
         [ImageSource.STABILITY]: '',
         [ImageSource.REPLICATE]: '',
         [ImageSource.HUGGINGFACE]: '',
+        [ImageSource.MODELSCOPE]: '',
+        [ImageSource.VOLCENGINE]: '', // VolcEngine Key
         [ImageSource.OPENROUTER]: '',
         'cloudflare_account_id': '',
         'cloudflare_token': '',
+        'r2_access_key_id': '',
+        'r2_secret_access_key': '',
     });
     const [isApiModalOpen, setIsApiModalOpen] = useState(false);
 
@@ -540,6 +639,10 @@ const ImageTextProcessor: React.FC = () => {
                     if (!apiKeys[ImageSource.ZHIPU_COGVIEW]) throw new Error(`Zhipu API Key missing.`);
                     result = await fetchZhipuImages(currentParams, apiKeys[ImageSource.ZHIPU_COGVIEW]);
                     break;
+                case ImageSource.VOLCENGINE:
+                    if (!apiKeys[ImageSource.VOLCENGINE]) throw new Error(`Volcano Engine API Key missing.`);
+                    result = await fetchVolcEngineImages(currentParams, apiKeys[ImageSource.VOLCENGINE]);
+                    break;
                 case ImageSource.REPLICATE:
                     if (!apiKeys[ImageSource.REPLICATE]) throw new Error(`Replicate API Token missing.`);
                     result = await fetchReplicateImages(currentParams, apiKeys[ImageSource.REPLICATE]);
@@ -557,8 +660,17 @@ const ImageTextProcessor: React.FC = () => {
                     result = await fetchOpenRouterImages(currentParams, apiKeys[ImageSource.OPENROUTER]);
                     break;
                 case ImageSource.DALLE3:
+                    if (!apiKeys[ImageSource.DALLE3]) throw new Error(`OpenAI API Key(for DALL - E) missing.`);
+                    result = await fetchOpenAIImages(currentParams, apiKeys[ImageSource.DALLE3]);
+                    break;
                 case ImageSource.STABILITY:
-                    throw new Error("Direct client-side generation for DALL-E 3 and Stability AI is disabled for security. Please use Pollinations (Flux) or Kolors, or implement a backend proxy.");
+                    if (!apiKeys[ImageSource.STABILITY]) throw new Error(`Stability AI API Key missing.`);
+                    result = await fetchStabilityImages(currentParams, apiKeys[ImageSource.STABILITY]);
+                    break;
+                case ImageSource.MODELSCOPE:
+                    if (!apiKeys[ImageSource.MODELSCOPE]) throw new Error(`ModelScope Access Token missing.`);
+                    result = await fetchModelScopeImages(currentParams, apiKeys[ImageSource.MODELSCOPE]);
+                    break;
             }
             setImages(result);
         } catch (err) {
@@ -582,6 +694,16 @@ const ImageTextProcessor: React.FC = () => {
                 // Track source ID
                 if (navigationPayload.data.sourceArticleId) {
                     setSourceArticleId(navigationPayload.data.sourceArticleId);
+                    // Pre-fill content from article if provided (Update Mode)
+                    // Also try to set keyword context if available in article
+                    // We need to fetch the article definition or pass it in payload?
+                    // The payload has sourceArticleId. We can find it in articles list.
+                    const sourceArt = articles.find(a => a.id === navigationPayload.data.sourceArticleId);
+                    if (sourceArt) {
+                        setKeywordContext(sourceArt.keyword_context || '');
+                        setSaveImagesParentProjectId(sourceArt.parent_project_id);
+                        setSaveImagesSubProjectId(sourceArt.sub_project_id);
+                    }
                 }
 
                 // Pre-fill project selection if passed
@@ -653,6 +775,9 @@ const ImageTextProcessor: React.FC = () => {
             case ImageSource.OPENROUTER:
                 sourceDefaults = { per_page: 1, model: 'stabilityai/stable-diffusion-xl-base-1.0', width: 1024, height: 1024 };
                 break;
+            case ImageSource.MODELSCOPE:
+                sourceDefaults = { model: 'Qwen/Qwen2.5-Coder-32B-Instruct', size: '1024x1024', steps: 30, guidance: 7.5 };
+                break;
             default:
                 sourceDefaults = {};
         }
@@ -667,7 +792,7 @@ const ImageTextProcessor: React.FC = () => {
 
     const handleSelectArticle = (article: Article) => {
         setArticleContent(article.content);
-        setKeywordContext(article.keywordContext);
+        setKeywordContext(article.keyword_context);
         setSourceArticleId(article.id); // Track source
         setSaveImagesParentProjectId(article.parent_project_id);
         setSaveImagesSubProjectId(article.sub_project_id);
@@ -683,7 +808,7 @@ const ImageTextProcessor: React.FC = () => {
     // --- Markdown & Preview Logic ---
     const generateMarkdownWithImages = useCallback(() => {
         const selected = images.filter(img => selectedImages[img.id]);
-        const imagePlaceholder = (index: number, img: ImageObject) => `\n\n![${img.alt_description}](${img.url_regular})\n*${img.alt_description}*\n\n`;
+        const imagePlaceholder = (index: number, img: ImageObject) => `\n\n<img src="${img.url_regular}" alt="${img.alt_description}" data-image-id="${img.id}" />\n*${img.alt_description}*\n\n`;
 
         let tempContent = articleContent;
 
@@ -734,10 +859,18 @@ const ImageTextProcessor: React.FC = () => {
 
     // --- Saving Logic (Persistence) ---
 
-    // Utility: Convert ephemeral selected images to Base64 if needed
+    // Utility: Convert ephemeral selected images to Base64 OR Upload to R2 if configured
     const prepareImagesForSave = async (imagesToSave: ImageObject[]): Promise<ImageObject[]> => {
         setIsProcessing(true);
         const processedImages: ImageObject[] = [];
+
+        // Check for R2 Credentials
+        const r2AccountId = apiKeys['cloudflare_account_id'];
+        const r2AccessKeyId = apiKeys['r2_access_key_id'];
+        const r2SecretKey = apiKeys['r2_secret_access_key'];
+        const r2BucketName = "seo-content-temp-images"; // Hardcoded specific temp bucket
+
+        const hasR2 = r2AccountId && r2AccessKeyId && r2SecretKey;
 
         for (const img of imagesToSave) {
             // Check if URL is ephemeral (blob:, or specific domains) or just to be safe, convert all generation results.
@@ -745,20 +878,80 @@ const ImageTextProcessor: React.FC = () => {
             const isStock = img.source_platform === ImageSource.PIXABAY || img.source_platform === ImageSource.UNSPLASH;
 
             if (isStock) {
-                processedImages.push(img);
+                // Determine if we should save stock images to DB 'images' table too?
+                // Yes, for consistency, we should track them.
+                try {
+                    // Cast to any to bypass strict typing for new table
+                    const { data, error } = await (supabase as any).from('images').insert({
+                        user_id: session?.user?.id,
+                        article_id: sourceArticleId || null,
+                        storage_provider: 'external',
+                        storage_path: null,
+                        public_url: img.url_regular,
+                        prompt: img.alt_description,
+                        metadata: { width: img.width, height: img.height, source_platform: img.source_platform }
+                    }).select().single();
+
+                    if (data) {
+                        processedImages.push({ ...img, id: data.id }); // Use DB ID
+                    } else {
+                        processedImages.push(img);
+                    }
+                } catch (e) {
+                    processedImages.push(img);
+                }
             } else {
                 try {
-                    // Convert to Base64 for persistence
-                    // Note: Ideally upload to S3/R2 here, but we use DB storage for this demo constraint
-                    const base64 = await convertUrlToBase64(img.url_regular);
+                    let finalUrl = img.url_regular;
+                    let storageProvider = 'base64_fallback';
+                    let storagePath = null;
+
+                    if (hasR2) {
+                        // --- R2 UPLOAD PATH ---
+                        try {
+                            const response = await fetch(img.url_regular);
+                            const blob = await response.blob();
+                            const ext = blob.type.split('/')[1] || 'png';
+                            const fileName = `img-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+
+                            // Upload
+                            finalUrl = await uploadImageToR2(blob, fileName, r2AccountId, r2AccessKeyId, r2SecretKey, r2BucketName);
+                            storageProvider = 'r2';
+                            storagePath = fileName;
+                        } catch (uploadError) {
+                            console.error("R2 Upload failed, falling back to Base64", uploadError);
+                            // Fallback to Base64
+                            finalUrl = await convertUrlToBase64(img.url_regular);
+                            storageProvider = 'base64_fallback';
+                        }
+                    } else {
+                        // --- DATABASE/BASE64 PATH ---
+                        finalUrl = await convertUrlToBase64(img.url_regular);
+                        storageProvider = 'base64_fallback';
+                    }
+
+                    // Insert into 'images' Table (New Logic)
+                    // Cast to any
+                    const { data: dbImage, error: dbError } = await (supabase as any).from('images').insert({
+                        user_id: session?.user?.id,
+                        article_id: sourceArticleId || null,
+                        storage_provider: storageProvider,
+                        storage_path: storagePath,
+                        public_url: finalUrl,
+                        prompt: img.alt_description,
+                        metadata: { width: img.width, height: img.height, source_platform: img.source_platform }
+                    }).select().single();
+
+                    if (dbError) throw dbError;
+
                     processedImages.push({
                         ...img,
-                        url_regular: base64, // Replace URL with Data URI
-                        url_full: base64,
-                        base64: base64
+                        id: dbImage?.id || img.id, // Fallback if dbImage is null (shouldn't happen with single() + throw)
+                        url_regular: finalUrl,
+                        url_full: finalUrl,
                     });
                 } catch (e) {
-                    console.error(`Failed to persist image ${img.id}`, e);
+                    console.error(`Failed to persist image ${img.id} `, e);
                     processedImages.push(img); // Fallback to original URL
                 }
             }
@@ -785,7 +978,7 @@ const ImageTextProcessor: React.FC = () => {
                 // Explicitly cast insert payload and result to handle TS errors
                 const sb = supabase as any;
                 const { data: rawData, error } = await sb.from('projects').insert({
-                    id: `proj-${Date.now()}`,
+                    id: `proj - ${Date.now()} `,
                     name: newSaveImagesParentProjectName,
                     user_id: session.user.id,
                     created_at: new Date().toISOString(),
@@ -800,9 +993,9 @@ const ImageTextProcessor: React.FC = () => {
             }
 
             const newSet: Omit<SavedImageSet, 'user_id'> = {
-                id: `imgset-${Date.now()}`,
-                name: imageSetTag || `Set ${new Date().toLocaleTimeString()}`,
-                searchTermOrPrompt: searchTerm,
+                id: `imgset - ${Date.now()} `,
+                name: imageSetTag || `Set ${new Date().toLocaleTimeString()} `,
+                search_term_or_prompt: searchTerm,
                 images: persistedImages,
                 created_at: new Date().toISOString(),
                 parent_project_id: parentId || '',
@@ -819,7 +1012,7 @@ const ImageTextProcessor: React.FC = () => {
             await fetchData();
 
         } catch (error) {
-            toast.error(`Save failed: ${(error as Error).message}`);
+            toast.error(`Save failed: ${(error as Error).message} `);
         } finally {
             setIsSaving(false);
         }
@@ -851,7 +1044,8 @@ const ImageTextProcessor: React.FC = () => {
 
             const imagePlaceholder = (img: ImageObject) => {
                 const url = idToUrlMap.get(img.id) || img.url_regular;
-                return `\n\n![${img.alt_description}](${url})\n*${img.alt_description}*\n\n`;
+                // Use HTML format as requested for optimized storage tracking
+                return `\n\n<img src="${url}" alt="${img.alt_description}" data-image-id="${img.id}" />\n*${img.alt_description}*\n\n`;
             };
 
             let finalContent = articleContent;
@@ -879,19 +1073,23 @@ const ImageTextProcessor: React.FC = () => {
                 }
             }
 
+            if (!sourceArticleId) throw new Error("No source article ID found to update.");
+
             // 2. Update Article Record
-            const { error } = await supabase
+            // 2. Update Article Record
+            const { error: updateError } = await supabase
                 .from('articles')
-                .update({ content: finalContent } as any)
+                // @ts-ignore
+                .update({ content: finalContent })
                 .eq('id', sourceArticleId);
 
-            if (error) throw error;
+            if (updateError) throw updateError;
 
             toast.success("Article updated with images!");
             await fetchData(); // Refresh local data
 
         } catch (error) {
-            toast.error(`Update failed: ${(error as Error).message}`);
+            toast.error(`Update failed: ${(error as Error).message} `);
         } finally {
             setIsSaving(false);
         }
@@ -903,7 +1101,19 @@ const ImageTextProcessor: React.FC = () => {
 
     return (
         <div className="flex h-full font-sans text-gray-100">
-            <ApiSettingsModal isOpen={isApiModalOpen} onClose={() => setIsApiModalOpen(false)} apiKeys={apiKeys} onSave={setApiKeys} />
+            <ApiSettingsModal
+                isOpen={isApiModalOpen}
+                onClose={() => setIsApiModalOpen(false)}
+                apiKeys={apiKeys}
+                onSave={setApiKeys}
+                activeSource={source}
+                onSelectSource={(s) => {
+                    setSource(s);
+                    if (s !== ImageSource.POLLINATIONS && !apiKeys[s as keyof ImageApiKeys] && s !== ImageSource.CLOUDFLARE) {
+                        toast("Ensure you enter an API Key for this provider", { icon: '🔑' });
+                    }
+                }}
+            />
             <Modal isOpen={isLibraryModalOpen} onClose={() => setIsLibraryModalOpen(false)} title="Import from Library">
                 <div className="p-4 space-y-2 max-h-[60vh] overflow-y-auto">
                     {articles.map(article => (

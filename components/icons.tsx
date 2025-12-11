@@ -257,3 +257,9 @@ export const LockIcon: React.FC<{ className?: string }> = ({ className }) => (
         <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
     </svg>
 );
+
+export const BrainIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75m0 0-1.92 2.177M9 18.75V21m-4.5-1.5H5.25m18-5.25V8.25a2.25 2.25 0 0 0-2.25-2.25H16.5m0 9.75-1.875 2.625M16.5 13.5V11.25a2.25 2.25 0 0 0-2.25-2.25h-1.312m0 0 4.5 4.5M12 3v2.25m0 0-.229 2.25m0-2.25-2.11 6.332c-.863 2.587-4.99 2.587-5.853 0L1.75 6.75m16.5 0L20.25 6" />
+    </svg>
+);

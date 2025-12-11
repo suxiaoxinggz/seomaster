@@ -286,16 +286,45 @@ export const generateKeywordMap = async (initialKeywords: string, extraInstructi
         .replace('{extraInstructions}', extraInstructions || 'None');
 
     const prompt = `${basePrompt}\n\n${KEYWORD_MAP_JSON_STRUCTURE}`;
+    const MAX_RETRIES = 2;
 
-    try {
-        const rawResponse = await callLlm(prompt, model, { jsonMode: true });
-        const cleanedResponse = cleanModelOutput(rawResponse);
-        const json = extractValidJSON(cleanedResponse);
-        return KeywordMapSchema.parse(json) as KeywordMap;
-    } catch (error) {
-        console.error("Keyword Map Generation Error:", error);
-        throw new Error(`Failed to generate valid keyword map: ${(error as Error).message}`);
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+        try {
+            // For retries, we could potentially adjust temperature or add a "correction" instruction
+            const rawResponse = await callLlm(prompt, model, { jsonMode: true });
+            const cleanedResponse = cleanModelOutput(rawResponse);
+            console.log(`[GenerateKeywordMap] Attempt ${attempt + 1} Raw Response:`, cleanedResponse);
+
+            let json: any;
+            try {
+                json = extractValidJSON(cleanedResponse);
+            } catch (jsonErr) {
+                // If JSON extraction fails, throw specifically so we can retry
+                throw new Error(`JSON Processing Failed: ${(jsonErr as Error).message}`);
+            }
+
+            // check if the model returned an error object instead of the map
+            if (json.error) {
+                throw new Error(`Model/API returned error object: ${JSON.stringify(json.error)}`);
+            }
+            // Check for missing keys explicitly to give better error than Zod
+            if (!json.coreUserIntent && !json.keywordHierarchy) {
+                throw new Error("Response JSON missing critical fields (coreUserIntent/keywordHierarchy).");
+            }
+
+            return KeywordMapSchema.parse(json) as KeywordMap;
+        } catch (error) {
+            console.warn(`Keyword Map Generation Attempt ${attempt + 1} Failed:`, error);
+            if (attempt === MAX_RETRIES) {
+                console.error("All Keyword Map Generation attempts failed.");
+                throw new Error(`Failed to generate valid keyword map after ${MAX_RETRIES + 1} attempts: ${(error as Error).message}`);
+            }
+            // Optional: Wait a bit before retry? callLlm handles network retries, but this is Logic retry.
+            // Small delay to prevent tight loop if using a fast local model with same seed
+            await new Promise(r => setTimeout(r, 1000));
+        }
     }
+    throw new Error("Unexpected error in generateKeywordMap");
 };
 
 export const generateLsiForNode = async (context: any, model: Model): Promise<string[]> => {

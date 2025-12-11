@@ -972,9 +972,6 @@ const prepareImagesForSave = async (imagesToSave: ImageObject[]): Promise<ImageO
                     storageProvider = 'r2';
                 } else {
                     // Fallback or Stock Image
-                    // If it's a stock image, keep the URL (external)
-                    // If it's a blob/base64 that failed auto-upload, we might want to try uploading to backend again?
-                    // For now, let's assume auto-upload worked or we treat it as external/base64.
                     if (img.url_regular.startsWith('data:')) {
                         storageProvider = 'base64_fallback';
                     } else {
@@ -982,36 +979,35 @@ const prepareImagesForSave = async (imagesToSave: ImageObject[]): Promise<ImageO
                     }
                     finalUrl = img.url_regular;
                 }
-            }
 
                 // Insert into 'images' Table (New Logic)
-                // Cast to any
+                // Cast to any to bypass strict type checking if needed for new columns
                 const { data: dbImage, error: dbError } = await (supabase as any).from('images').insert({
-                user_id: session?.user?.id,
-                article_id: sourceArticleId || null,
-                storage_provider: storageProvider,
-                storage_path: storagePath,
-                public_url: finalUrl,
-                prompt: img.alt_description,
-                metadata: { width: img.width, height: img.height, source_platform: img.source_platform }
-            }).select().single();
+                    user_id: session?.user?.id,
+                    article_id: sourceArticleId || null,
+                    storage_provider: storageProvider,
+                    storage_path: storagePath,
+                    public_url: finalUrl,
+                    prompt: img.alt_description,
+                    metadata: { width: img.width, height: img.height, source_platform: img.source_platform }
+                }).select().single();
 
-            if (dbError) throw dbError;
+                if (dbError) throw dbError;
 
-            processedImages.push({
-                ...img,
-                id: dbImage?.id || img.id, // Fallback if dbImage is null (shouldn't happen with single() + throw)
-                url_regular: finalUrl,
-                url_full: finalUrl,
-            });
-        } catch (e) {
-            console.error(`Failed to persist image ${img.id} `, e);
-            processedImages.push(img); // Fallback to original URL
+                processedImages.push({
+                    ...img,
+                    id: dbImage?.id || img.id,
+                    url_regular: finalUrl,
+                    url_full: finalUrl,
+                });
+            } catch (e) {
+                console.error(`Failed to persist image ${img.id} `, e);
+                processedImages.push(img); // Fallback to original URL
+            }
         }
     }
-}
-setIsProcessing(false);
-return processedImages;
+    setIsProcessing(false);
+    return processedImages;
 };
 
 const handleSaveImageSet = async () => {

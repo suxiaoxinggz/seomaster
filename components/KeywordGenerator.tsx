@@ -1,5 +1,6 @@
 
 import React, { useState, useContext, useCallback, useMemo } from 'react';
+import useLocalStorage from '../hooks/useLocalStorage';
 import { AppContext } from '../context/AppContext';
 import Button from './ui/Button';
 import Card from './ui/Card';
@@ -44,8 +45,9 @@ const transformToRenderableMap = (map: KeywordMap): RenderLevel1Node[] => {
 
 const KeywordGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPage }) => {
     const context = useContext(AppContext);
-    const [initialKeywords, setInitialKeywords] = useState('vividcozy bedding, bedding sets, buy vividcozy bedding');
-    const [extraInstructions, setExtraInstructions] = useState('Focus on bedroom scenarios for young professionals.');
+    // Persist input state using local storage to prevent data loss on tab switch
+    const [initialKeywords, setInitialKeywords] = useLocalStorage<string>('kg_initial_keywords', 'vividcozy bedding, bedding sets, buy vividcozy bedding');
+    const [extraInstructions, setExtraInstructions] = useLocalStorage<string>('kg_extra_instructions', 'Focus on bedroom scenarios for young professionals.');
 
     const [generationModel, setGenerationModel] = useState<Model | null>(null);
 
@@ -53,8 +55,11 @@ const KeywordGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const [keywordMap, setKeywordMap] = useState<RenderLevel1Node[] | null>(null);
-    const [selectedKeywords, setSelectedKeywords] = useState<SelectedKeywords>({});
+    // Persist generated map and selection
+    const [keywordMap, setKeywordMap] = useLocalStorage<RenderLevel1Node[] | null>('kg_keyword_map', null);
+    const [selectedKeywords, setSelectedKeywords] = useLocalStorage<SelectedKeywords>('kg_selected_keywords', {});
+
+    // Filters don't necessarily need persistence, but could be added. Keep simple for now.
     const [filters, setFilters] = useState<FilterState>({ category: '', pageType: '', userBehavior: '' });
 
     const [translations, setTranslations] = useState<Record<string, string>>({});

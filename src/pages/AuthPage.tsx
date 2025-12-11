@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import { useNavigate } from 'react-router-dom';
-import { Zap, Lock, Mail, ArrowRight, Loader2 } from 'lucide-react';
+import { Zap, Lock, Mail, ArrowRight, Loader2, Key } from 'lucide-react';
+import { Toaster, toast } from 'react-hot-toast';
 
 export const AuthPage: React.FC = () => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [isPasswordMode, setIsPasswordMode] = useState(true); // Default to password mode as requested
     const [error, setError] = useState<string | null>(null);
     const [sent, setSent] = useState(false);
 
@@ -16,17 +19,30 @@ export const AuthPage: React.FC = () => {
         setError(null);
 
         try {
-            const { error } = await supabase.auth.signInWithOtp({
-                email,
-                options: {
-                    emailRedirectTo: window.location.origin + '/dashboard',
-                },
-            });
+            if (isPasswordMode) {
+                // Password Login
+                const { error } = await supabase.auth.signInWithPassword({
+                    email,
+                    password
+                });
+                if (error) throw error;
+                // Success is handled by onAuthStateChange in ToolApp, but we can also redirect
+                navigate('/dashboard');
+            } else {
+                // Magic Link Login
+                const { error } = await supabase.auth.signInWithOtp({
+                    email,
+                    options: {
+                        emailRedirectTo: window.location.origin + '/dashboard',
+                    },
+                });
 
-            if (error) throw error;
-            setSent(true);
+                if (error) throw error;
+                setSent(true);
+            }
         } catch (error: any) {
             setError(error.message || 'An error occurred');
+            toast.error(error.message);
         } finally {
             setLoading(false);
         }
@@ -34,6 +50,7 @@ export const AuthPage: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-slate-950 flex font-sans">
+            <Toaster />
             {/* Left Side - Visual */}
             <div className="hidden lg:flex w-1/2 bg-indigo-900/20 relative items-center justify-center p-12 overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/50 to-slate-950 z-0" />
@@ -57,11 +74,13 @@ export const AuthPage: React.FC = () => {
                 <div className="max-w-md w-full space-y-8">
                     <div className="text-center lg:text-left">
                         <h1 className="text-3xl font-bold text-white">Sign in to your account</h1>
-                        <p className="mt-2 text-slate-400">Enter your email for a passwordless magic link.</p>
+                        <p className="mt-2 text-slate-400">
+                            {isPasswordMode ? 'Enter your credentials to access your dashboard.' : 'Enter your email for a passwordless magic link.'}
+                        </p>
                     </div>
 
                     <div className="bg-white/5 border border-white/10 p-8 rounded-2xl backdrop-blur-sm">
-                        {sent ? (
+                        {sent && !isPasswordMode ? (
                             <div className="text-center py-8 space-y-4">
                                 <div className="mx-auto w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center">
                                     <Mail className="w-6 h-6 text-green-400" />
@@ -77,6 +96,24 @@ export const AuthPage: React.FC = () => {
                             </div>
                         ) : (
                             <form onSubmit={handleLogin} className="space-y-6">
+                                {/* Toggle */}
+                                <div className="flex bg-slate-900/50 p-1 rounded-lg">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsPasswordMode(true)}
+                                        className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${isPasswordMode ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-200'}`}
+                                    >
+                                        Password
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsPasswordMode(false)}
+                                        className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${!isPasswordMode ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-200'}`}
+                                    >
+                                        Magic Link
+                                    </button>
+                                </div>
+
                                 <div>
                                     <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-2">
                                         Email Address
@@ -98,6 +135,29 @@ export const AuthPage: React.FC = () => {
                                     </div>
                                 </div>
 
+                                {isPasswordMode && (
+                                    <div>
+                                        <label htmlFor="password" className="block text-sm font-medium text-slate-300 mb-2">
+                                            Password
+                                        </label>
+                                        <div className="relative">
+                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                <Key className="h-5 w-5 text-slate-500" />
+                                            </div>
+                                            <input
+                                                id="password"
+                                                name="password"
+                                                type="password"
+                                                required={isPasswordMode}
+                                                className="w-full pl-10 pr-4 py-3 bg-slate-900 border border-slate-700 text-white rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all placeholder-slate-600"
+                                                placeholder="••••••••"
+                                                value={password}
+                                                onChange={(e) => setPassword(e.target.value)}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
                                 {error && (
                                     <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm flex items-center gap-2">
                                         <Lock className="w-4 h-4" />
@@ -114,7 +174,7 @@ export const AuthPage: React.FC = () => {
                                         <Loader2 className="w-5 h-5 animate-spin" />
                                     ) : (
                                         <>
-                                            Send Magic Link
+                                            {isPasswordMode ? 'Sign In' : 'Send Magic Link'}
                                             <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
                                         </>
                                     )}

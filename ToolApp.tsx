@@ -417,38 +417,42 @@ const AppContent: React.FC = () => {
     // WRAP EVERYTHING IN CONTEXT FROM HERE
     return (
         <AppContext.Provider value={appContextValue}>
-            {(!session) ? (
-                // Loading or No Session
+            {/* Show full screen loader ONLY on initial load when we don't know session status */}
+            {(isLoading && !session && !isSetupRequired) ? (
+                // Loading Initial Session
                 <div className="flex items-center justify-center h-screen w-screen bg-gray-900">
                     <Spinner size="lg" />
                 </div>
             ) : (
                 // Main Tool UI
-                (isLoading) ? (
-                    <div className="flex h-screen bg-gray-900 text-gray-200 font-sans">
-                        <Sidebar currentPage={page} setPage={setPage} />
-                        <main className="flex-1 overflow-y-auto flex items-center justify-center">
-                            <Spinner size="lg" />
-                        </main>
-                    </div>
-                ) : (
-                    <div className="flex h-screen bg-gray-900 text-gray-200 font-sans">
-                        <Sidebar currentPage={page} setPage={setPage} />
-                        <main className="flex-1 overflow-y-auto">
-                            <PageContainer isVisible={page === 'dashboard'}><Dashboard setPage={setPage} /></PageContainer>
-                            <PageContainer isVisible={page === 'keyword-map'}><KeywordGenerator setPage={setPage} /></PageContainer>
-                            <PageContainer isVisible={page === 'seo-data'}><SeoDataManager /></PageContainer>
-                            <PageContainer isVisible={page === 'seo-assets'}><SeoAssetsLibrary setPage={setPage} /></PageContainer>
-                            <PageContainer isVisible={page === 'seo-strategy'}><SeoStrategyManager /></PageContainer>
-                            <PageContainer isVisible={page === 'outline-article'}><ArticleGenerator setPage={setPage} /></PageContainer>
-                            <PageContainer isVisible={page === 'image-text'}><ImageTextProcessor /></PageContainer>
-                            <PageContainer isVisible={page === 'localization'}><LocalizationView /></PageContainer>
-                            <PageContainer isVisible={page === 'publish'}><PublishingManager setPage={setPage} /></PageContainer>
-                            <PageContainer isVisible={page === 'settings'}><ModelSettings /></PageContainer>
-                            <PageContainer isVisible={page === 'account'}><AccountSettings /></PageContainer>
-                        </main>
-                    </div>
-                )
+                <div className="flex h-screen bg-gray-900 text-gray-200 font-sans">
+                    {/* If session exists, show Sidebar. If guest, show sidebar. If no session & not loading, router handles redirects. */}
+                    {session && <Sidebar currentPage={page} setPage={setPage} />}
+
+                    <main className="flex-1 overflow-y-auto relative">
+                        {/* Show a subtle top-right spinner if background fetching, instead of blocking UI */}
+                        {isLoading && session && (
+                            <div className="absolute top-4 right-4 z-50">
+                                <Spinner size="sm" />
+                            </div>
+                        )}
+
+                        {/* Page Containers - Always mounted but hidden */}
+                        <PageContainer isVisible={page === 'dashboard'}><Dashboard setPage={setPage} /></PageContainer>
+
+                        <PageContainer isVisible={page === 'keyword-map'}><KeywordGenerator setPage={setPage} /></PageContainer>
+                        <PageContainer isVisible={page === 'seo-data'}><SeoDataManager /></PageContainer>
+                        <PageContainer isVisible={page === 'seo-assets'}><SeoAssetsLibrary setPage={setPage} /></PageContainer>
+                        <PageContainer isVisible={page === 'seo-strategy'}><SeoStrategyManager /></PageContainer>
+                        <PageContainer isVisible={page === 'outline-article'}><ArticleGenerator setPage={setPage} /></PageContainer>
+                        <PageContainer isVisible={page === 'image-text'}><ImageTextProcessor /></PageContainer>
+                        <PageContainer isVisible={page === 'localization'}><LocalizationView /></PageContainer>
+                        <PageContainer isVisible={page === 'publish'}><PublishingManager setPage={setPage} /></PageContainer>
+                        <PageContainer isVisible={page === 'settings'}><ModelSettings /></PageContainer>
+                        <PageContainer isVisible={page === 'account'}><AccountSettings /></PageContainer>
+                    </main>
+                </div>
+            )
             )}
         </AppContext.Provider>
     );

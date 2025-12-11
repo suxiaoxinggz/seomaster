@@ -42,18 +42,18 @@ const ArticleGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
     const context = useContext(AppContext);
 
     // Left panel state
-    const [promptTemplate, setPromptTemplate] = useState(ARTICLE_PROMPT_TEMPLATE);
-    const [keywordContext, setKeywordContext] = useState('');
+    const [promptTemplate, setPromptTemplate] = useLocalStorage<string>('ag_prompt_template', ARTICLE_PROMPT_TEMPLATE);
+    const [keywordContext, setKeywordContext] = useLocalStorage<string>('ag_keyword_context', '');
     const [selectedModelId, setSelectedModelId] = useState(context?.defaultModelId || context?.models[0]?.id || '');
     const [enableWebSearch, setEnableWebSearch] = useState(false);
 
     // Right panel state
-    const [generatedArticle, setGeneratedArticle] = useState('');
-    const [translatedArticle, setTranslatedArticle] = useState('');
+    const [generatedArticle, setGeneratedArticle] = useLocalStorage<string>('ag_generated_article', '');
+    const [translatedArticle, setTranslatedArticle] = useLocalStorage<string>('ag_translated_article', '');
     const [savedArticleId, setSavedArticleId] = useState<string | null>(null);
 
     // Translation State
-    const [targetLanguage, setTargetLanguage] = useState('Chinese (Simplified)');
+    const [targetLanguage, setTargetLanguage] = useLocalStorage<string>('ag_target_language', 'Chinese (Simplified)');
     const [translationProvider, setTranslationProvider] = useState<TranslationProvider>(TranslationProvider.LLM);
     // Keys sharing with LocalizationView via localStorage
     const [apiKeys] = useLocalStorage<TranslationApiKeys>('translation_api_keys', {

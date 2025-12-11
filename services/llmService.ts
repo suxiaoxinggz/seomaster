@@ -1,6 +1,6 @@
 import { KeywordMap, Model, ApiProvider } from '../types';
 import { extractValidJSON } from './jsonParser';
-import { SEO_PROMPT_TEMPLATE, LSI_GENERATION_PROMPT_TEMPLATE, ARTICLE_PROMPT_TEMPLATE, TRANSLATE_PROMPT_TEMPLATE, BATCH_TRANSLATE_PROMPT_TEMPLATE } from '../constants';
+import { SEO_PROMPT_TEMPLATE, LSI_GENERATION_PROMPT_TEMPLATE, ARTICLE_PROMPT_TEMPLATE, TRANSLATE_PROMPT_TEMPLATE, BATCH_TRANSLATE_PROMPT_TEMPLATE, KEYWORD_MAP_JSON_STRUCTURE } from '../constants';
 import { z } from 'zod';
 
 // --- Zod Schemas for Runtime Validation ---
@@ -268,6 +268,7 @@ export async function callLlm(
 
 // --- PUBLIC SERVICES ---
 
+
 export const verifyModelConnection = async (model: Model): Promise<{ success: boolean, message: string }> => {
     try {
         await callLlm("Hi", model);
@@ -278,9 +279,13 @@ export const verifyModelConnection = async (model: Model): Promise<{ success: bo
 }
 
 export const generateKeywordMap = async (initialKeywords: string, extraInstructions: string, model: Model, promptTemplate: string = SEO_PROMPT_TEMPLATE): Promise<KeywordMap> => {
-    const prompt = promptTemplate
+    // Enforce strict JSON structure by appending it to the user's template (or default)
+    // regardless of what the user defines in the prompt editor.
+    const basePrompt = promptTemplate
         .replace('{initialKeywords}', initialKeywords)
         .replace('{extraInstructions}', extraInstructions || 'None');
+
+    const prompt = `${basePrompt}\n\n${KEYWORD_MAP_JSON_STRUCTURE}`;
 
     try {
         const rawResponse = await callLlm(prompt, model, { jsonMode: true });

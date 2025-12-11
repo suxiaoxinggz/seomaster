@@ -98,7 +98,7 @@ const ContentProgressView: React.FC<ContentProgressViewProps> = ({ setPage, filt
 
         const newArticle: Article = {
             ...selectedArticle,
-            id: `article-${Date.now()}`,
+            id: crypto.randomUUID(),
             title: newTitle,
             content: editedContent.trim(),
             created_at: new Date().toISOString(),
@@ -143,7 +143,7 @@ const ContentProgressView: React.FC<ContentProgressViewProps> = ({ setPage, filt
         const articlesToAdd = articles.filter(a => selectedIds.includes(a.id));
 
         const newQueueItems: PublishingItem[] = articlesToAdd.map(article => ({
-            id: `queue-article-${article.id}-${Date.now()}`,
+            id: crypto.randomUUID(),
             source_id: article.id,
             source_type: 'article',
             name: article.title,

@@ -216,7 +216,9 @@ You MUST return ONLY a valid JSON object. Do not output markdown code blocks (li
 
 **ADDITIONAL INSTRUCTIONS:**
 {extraInstructions}
+`;
 
+export const KEYWORD_MAP_JSON_STRUCTURE = `
 **REQUIRED JSON STRUCTURE:**
 {
   "coreUserIntent": "Summary string",

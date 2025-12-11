@@ -396,7 +396,7 @@ const KeywordGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
                     return;
                 }
                 const newProject: Omit<Project, 'user_id'> = {
-                    id: `proj-${Date.now()}`,
+                    id: crypto.randomUUID(),
                     name: newParentProjectName.trim(),
                     created_at: new Date().toISOString(),
                     updated_at: new Date().toISOString(),
@@ -469,7 +469,7 @@ const KeywordGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
             }
 
             const newSubProject: Omit<KeywordSubProject, 'user_id'> = {
-                id: `subproj-${Date.now()}`,
+                id: crypto.randomUUID(),
                 name: finalSubProjectName,
                 parent_project_id: finalParentProjectId,
                 saved_at: new Date().toISOString(),

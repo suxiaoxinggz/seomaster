@@ -134,7 +134,6 @@ async function saveSnapshotHelper(
     setSavingState(true);
     try {
         const payload: Partial<SeoSnapshot> = {
-            id: `snap-${Date.now()}`,
             user_id: session.user.id,
             type,
             query,

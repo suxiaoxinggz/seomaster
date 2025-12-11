@@ -88,8 +88,8 @@ export const ModelSettings: React.FC = () => {
                     <button
                         onClick={() => setActiveTab('llm')}
                         className={`pb-4 px-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'llm'
-                                ? 'border-blue-500 text-blue-400'
-                                : 'border-transparent text-gray-400 hover:text-gray-200 hover:border-gray-700'
+                            ? 'border-blue-500 text-blue-400'
+                            : 'border-transparent text-gray-400 hover:text-gray-200 hover:border-gray-700'
                             }`}
                     >
                         <BrainIcon className="w-5 h-5" />
@@ -98,8 +98,8 @@ export const ModelSettings: React.FC = () => {
                     <button
                         onClick={() => setActiveTab('image')}
                         className={`pb-4 px-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'image'
-                                ? 'border-purple-500 text-purple-400'
-                                : 'border-transparent text-gray-400 hover:text-gray-200 hover:border-gray-700'
+                            ? 'border-purple-500 text-purple-400'
+                            : 'border-transparent text-gray-400 hover:text-gray-200 hover:border-gray-700'
                             }`}
                     >
                         <ImageIcon className="w-5 h-5" />
@@ -108,8 +108,8 @@ export const ModelSettings: React.FC = () => {
                     <button
                         onClick={() => setActiveTab('translation')}
                         className={`pb-4 px-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'translation'
-                                ? 'border-green-500 text-green-400'
-                                : 'border-transparent text-gray-400 hover:text-gray-200 hover:border-gray-700'
+                            ? 'border-green-500 text-green-400'
+                            : 'border-transparent text-gray-400 hover:text-gray-200 hover:border-gray-700'
                             }`}
                     >
                         <GlobeIcon className="w-5 h-5" />
@@ -173,3 +173,5 @@ export const ModelSettings: React.FC = () => {
         </div>
     );
 };
+
+export default ModelSettings;

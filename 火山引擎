@@ -1,0 +1,245 @@
+一、核心基础信息
+**
+项
+详情说明
+API 基础 URL
+公网地址：https://ark-api.volcengine.com/v3/chat/completions（大模型对话接口）
+请求方法
+POST（仅支持 POST 请求）
+请求协议
+HTTPS（强制 HTTPS，不支持 HTTP）
+字符编码
+UTF-8
+认证方式
+API-Key 认证（HTTP 请求头携带 Authorization: Bearer {your-api-key}）
+支持模型
+火山方舟平台模型（如：volc-gpt-4、volc-gpt-3.5-turbo、code-llama 等），需提前在控制台开通
+是否需要 SDK
+可选（支持官方 SDK，也可直接 HTTP 调用；无特殊强制 SDK 要求）
+OpenAI 协议兼容
+支持（火山方舟接口兼容 OpenAI Chat Completions 协议，可直接复用 OpenAI 客户端代码）
+
+二、请求体 JSON 格式（完整字段）
+1. 字段说明（必填项标★）
+字段名
+类型
+是否必填
+描述及取值范围
+model★
+string
+是
+模型名称（需与控制台开通的模型一致，如："volc-gpt-4"、"volc-gpt-3.5-turbo"）
+messages★
+array
+是
+对话历史数组，每个元素为一个对话对象（见下方message对象结构）
+temperature
+number
+否
+温度参数（0-1，默认 0.7，值越高生成越随机，越低越严谨）
+top_p
+number
+否
+核采样参数（0-1，默认 0.8，与 temperature 互斥，优先用 temperature）
+max_tokens
+integer
+否
+生成文本最大令牌数（默认 2048，最大支持 8192，需≤模型上限）
+stop
+array
+否
+终止符数组（字符串类型，如 ["###", "END"]，遇到该字符停止生成）
+stream
+boolean
+否
+是否流式返回（默认 false，true 为流式响应，用于实时输出）
+user_id
+string
+否
+用户唯一标识（用于追踪会话，建议传入，长度≤64 字符）
+response_format
+object
+否
+响应格式（支持 {"type": "json_object"} 强制返回 JSON，默认 text）
+seed
+integer
+否
+随机种子（-1~2^32-1，默认 - 1，固定种子可复现相同结果）
+
+2. messages数组中单个message对象结构
+字段名
+类型
+是否必填
+描述及取值范围
+role★
+string
+是
+角色（仅支持 3 类："user" 用户、"assistant" 助手、"system" 系统）
+content★
+string
+是
+对话内容（文本长度≤16384 字符）
+name
+string
+否
+角色名称（可选，长度≤64 字符）
+
+3. 完整请求体示例（非流式）
+{
+  "model": "volc-gpt-4",
+  "messages": [
+    {
+      "role": "system",
+      "content": "你是专业的鞋子行业数据分析师，仅基于提供的重量表格回答问题"
+    },
+    {
+      "role": "user",
+      "content": "请计算单只300g的帆布鞋对应的盎司重量"
+    }
+  ],
+  "temperature": 0.5,
+  "max_tokens": 1024,
+  "user_id": "shoe-business-001",
+  "response_format": {
+    "type": "json_object"
+  }
+}
+
+三、返回体 JSON 格式（完整字段）
+1. 非流式返回（stream=false）
+{
+  "id": "chatcmpl-xxxxxxxxxxxxxxxxxxxx", // 会话唯一ID（字符串）
+  "object": "chat.completion", // 对象类型（固定值）
+  "created": 1734888888, // 生成时间戳（秒级Unix时间）
+  "model": "volc-gpt-4", // 所用模型（与请求一致）
+  "choices": [
+    {
+      "index": 0, // 结果索引（多候选时用，默认0）
+      "message": {
+        "role": "assistant", // 角色（固定为assistant）
+        "content": '{"盎司重量": 10.6, "计算方式": "300g ÷ 28.35 ≈ 10.6oz"}' // 生成内容
+      },
+      "finish_reason": "stop", // 终止原因（stop=正常终止，length=令牌数用尽）
+      "logprobs": null // 概率信息（默认null，需特殊开通）
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 58, // 输入令牌数
+    "completion_tokens": 32, // 输出令牌数
+    "total_tokens": 90 // 总令牌数
+  },
+  "error": null // 错误信息（成功时为null，失败时返回错误详情）
+}
+
+2. 流式返回（stream=true）
+流式返回为 SSE（Server-Sent Events）格式，每段响应格式如下：
+{
+  "id": "chatcmpl-xxxxxxxxxxxxxxxxxxxx",
+  "object": "chat.completion.chunk",
+  "created": 1734888888,
+  "model": "volc-gpt-4",
+  "choices": [
+    {
+      "index": 0,
+      "delta": {
+        "content": '{"盎司重量": 10.6' // 增量返回内容（逐步拼接）
+      },
+      "finish_reason": null
+    }
+  ],
+  "usage": null
+}
+
+最终结束段响应：
+{
+  "id": "chatcmpl-xxxxxxxxxxxxxxxxxxxx",
+  "object": "chat.completion.chunk",
+  "created": 1734888888,
+  "model": "volc-gpt-4",
+  "choices": [
+    {
+      "index": 0,
+      "delta": {},
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 58,
+    "completion_tokens": 32,
+    "total_tokens": 90
+  }
+}
+
+四、错误返回体格式（HTTP 状态码≠200）
+{
+  "error": {
+    "code": "INVALID_API_KEY", // 错误码（字符串）
+    "message": "API密钥无效或已过期，请检查密钥配置", // 错误描述
+    "request_id": "req-xxxxxxxxxxxxxxxx" // 请求ID（用于官方排查）
+  }
+}
+
+五、SDK 支持说明
+1. 官方 SDK（推荐）
+支持语言：Python、Java、Go、Node.js、PHP
+安装方式（Python 示例）：
+pip install volcengine
+
+核心调用代码（Python 示例）：
+from volcengine.ark.api import ChatCompletion
+from volcengine.ark import ArkClient
+
+# 初始化客户端
+client = ArkClient(api_key="your-api-key")
+
+# 调用对话接口
+response = client.chat.completions.create(
+  model="volc-gpt-4",
+  messages=[
+    {"role": "user", "content": "300g帆布鞋等于多少盎司？"}
+  ],
+  temperature=0.5
+)
+
+# 解析响应
+print(response.choices[0].message.content)
+
+2. 无 SDK 调用（直接 HTTP 请求）
+示例（Python requests）：
+import requests
+
+url = "https://ark-api.volcengine.com/v3/chat/completions"
+headers = {
+  "Authorization": "Bearer your-api-key",
+  "Content-Type": "application/json"
+}
+data = {
+  "model": "volc-gpt-4",
+  "messages": [{"role": "user", "content": "300g帆布鞋等于多少盎司？"}]
+}
+
+response = requests.post(url, headers=headers, json=data)
+print(response.json())
+
+六、OpenAI 协议兼容说明
+兼容范围：支持 OpenAI Chat Completions v1 协议，可直接替换openai.api_base为火山引擎 URL
+示例（复用 OpenAI Python 客户端）：
+import openai
+
+openai.api_base = "https://ark-api.volcengine.com/v3"
+openai.api_key = "your-api-key"
+
+response = openai.ChatCompletion.create(
+  model="volc-gpt-4",
+  messages=[{"role": "user", "content": "300g帆布鞋等于多少盎司？"}]
+)
+print(response.choices[0].message.content)
+
+不兼容点：部分 OpenAI 特有字段（如functions、tool_choice）暂不支持，需参考火山引擎文档调整
+七、关键注意事项
+API-Key 获取：登录火山引擎控制台→火山方舟→API 密钥管理→创建密钥
+模型开通：调用前需在控制台 “模型市场” 开通对应模型（部分模型需申请权限）
+限流说明：默认单 API-Key QPS=10，如需更高限流需联系火山引擎商务申请
+数据安全：传输内容加密，支持配置 IP 白名单（控制台→安全设置）
+
+

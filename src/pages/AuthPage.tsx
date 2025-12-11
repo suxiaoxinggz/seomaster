@@ -9,9 +9,27 @@ export const AuthPage: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [isPasswordMode, setIsPasswordMode] = useState(true); // Default to password mode as requested
-    const [error, setError] = useState<string | null>(null);
-    const [sent, setSent] = useState(false);
+    const [isResetMode, setIsResetMode] = useState(false);
+
+    const handleResetPassword = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        setError(null);
+        try {
+            const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: window.location.origin + '/account-settings', // Redirect to account settings to set new password
+            });
+            if (error) throw error;
+            setIsResetMode(false);
+            setSent(true);
+            toast.success("Password reset email sent!");
+        } catch (error: any) {
+            setError(error.message || 'An error occurred');
+            toast.error(error.message);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -73,14 +91,20 @@ export const AuthPage: React.FC = () => {
             <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
                 <div className="max-w-md w-full space-y-8">
                     <div className="text-center lg:text-left">
-                        <h1 className="text-3xl font-bold text-white">Sign in to your account</h1>
+                        <h1 className="text-3xl font-bold text-white">
+                            {isResetMode ? 'Reset Password' : (sent ? 'Check your email' : 'Sign in to your account')}
+                        </h1>
                         <p className="mt-2 text-slate-400">
-                            {isPasswordMode ? 'Enter your credentials to access your dashboard.' : 'Enter your email for a passwordless magic link.'}
+                            {isResetMode
+                                ? "Enter your email address and we'll send you a link to reset your password."
+                                : sent
+                                    ? `We sent a link to ${email}`
+                                    : (isPasswordMode ? 'Enter your credentials to access your dashboard.' : 'Enter your email for a passwordless magic link.')}
                         </p>
                     </div>
 
                     <div className="bg-white/5 border border-white/10 p-8 rounded-2xl backdrop-blur-sm">
-                        {sent && !isPasswordMode ? (
+                        {sent && !isPasswordMode ? ( // Magic Link Sent State (existing logic, maybe slightly weird if reset sent logic overlaps)
                             <div className="text-center py-8 space-y-4">
                                 <div className="mx-auto w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center">
                                     <Mail className="w-6 h-6 text-green-400" />
@@ -94,25 +118,41 @@ export const AuthPage: React.FC = () => {
                                     Try another email
                                 </button>
                             </div>
-                        ) : (
-                            <form onSubmit={handleLogin} className="space-y-6">
-                                {/* Toggle */}
-                                <div className="flex bg-slate-900/50 p-1 rounded-lg">
-                                    <button
-                                        type="button"
-                                        onClick={() => setIsPasswordMode(true)}
-                                        className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${isPasswordMode ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-200'}`}
-                                    >
-                                        Password
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setIsPasswordMode(false)}
-                                        className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${!isPasswordMode ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-200'}`}
-                                    >
-                                        Magic Link
-                                    </button>
+                        ) : sent && isResetMode ? ( // Reset Link Sent State
+                            <div className="text-center py-8 space-y-4">
+                                <div className="mx-auto w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center">
+                                    <Mail className="w-6 h-6 text-green-400" />
                                 </div>
+                                <h3 className="text-xl font-semibold text-white">Reset link sent</h3>
+                                <p className="text-slate-400">If an account exists for <span className="text-white font-medium">{email}</span>, you will receive a password reset link shortly.</p>
+                                <button
+                                    onClick={() => { setSent(false); setIsResetMode(false); }}
+                                    className="text-indigo-400 hover:text-indigo-300 text-sm mt-4 font-medium"
+                                >
+                                    Return to Login
+                                </button>
+                            </div>
+                        ) : (
+                            <form onSubmit={isResetMode ? handleResetPassword : handleLogin} className="space-y-6">
+                                {/* Toggle (Only show if NOT in reset mode) */}
+                                {!isResetMode && (
+                                    <div className="flex bg-slate-900/50 p-1 rounded-lg">
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsPasswordMode(true)}
+                                            className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${isPasswordMode ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-200'}`}
+                                        >
+                                            Password
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsPasswordMode(false)}
+                                            className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${!isPasswordMode ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-200'}`}
+                                        >
+                                            Magic Link
+                                        </button>
+                                    </div>
+                                )}
 
                                 <div>
                                     <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-2">
@@ -135,11 +175,20 @@ export const AuthPage: React.FC = () => {
                                     </div>
                                 </div>
 
-                                {isPasswordMode && (
+                                {isPasswordMode && !isResetMode && (
                                     <div>
-                                        <label htmlFor="password" className="block text-sm font-medium text-slate-300 mb-2">
-                                            Password
-                                        </label>
+                                        <div className="flex justify-between items-center mb-2">
+                                            <label htmlFor="password" className="block text-sm font-medium text-slate-300">
+                                                Password
+                                            </label>
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsResetMode(true)}
+                                                className="text-xs text-indigo-400 hover:text-indigo-300"
+                                            >
+                                                Forgot password?
+                                            </button>
+                                        </div>
                                         <div className="relative">
                                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                                 <Key className="h-5 w-5 text-slate-500" />
@@ -165,20 +214,32 @@ export const AuthPage: React.FC = () => {
                                     </div>
                                 )}
 
-                                <button
-                                    type="submit"
-                                    disabled={loading}
-                                    className="w-full flex items-center justify-center py-3 px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-semibold transition-all shadow-lg shadow-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed group"
-                                >
-                                    {loading ? (
-                                        <Loader2 className="w-5 h-5 animate-spin" />
-                                    ) : (
-                                        <>
-                                            {isPasswordMode ? 'Sign In' : 'Send Magic Link'}
-                                            <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                                        </>
+                                <div className="space-y-3">
+                                    <button
+                                        type="submit"
+                                        disabled={loading}
+                                        className="w-full flex items-center justify-center py-3 px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-semibold transition-all shadow-lg shadow-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed group"
+                                    >
+                                        {loading ? (
+                                            <Loader2 className="w-5 h-5 animate-spin" />
+                                        ) : (
+                                            <>
+                                                {isResetMode ? 'Send Reset Link' : (isPasswordMode ? 'Sign In' : 'Send Magic Link')}
+                                                <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                                            </>
+                                        )}
+                                    </button>
+
+                                    {isResetMode && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsResetMode(false)}
+                                            className="w-full py-2 text-sm text-slate-400 hover:text-white transition-colors"
+                                        >
+                                            Back to Login
+                                        </button>
                                     )}
-                                </button>
+                                </div>
                             </form>
                         )}
                     </div>

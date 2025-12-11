@@ -4,6 +4,7 @@ import { translateTextStream } from '../services/llmService';
 import { fetchTranslation } from '../services/translationService'; // New Service
 import { Article, ModelProvider, TranslationProvider, TranslationApiKeys } from '../types';
 import useLocalStorage from '../hooks/useLocalStorage';
+import { TranslationSettingsContent } from './settings/TranslationSettingsContent';
 import Card from './ui/Card';
 import Button from './ui/Button';
 import Select from './ui/Select';
@@ -31,55 +32,14 @@ const TranslationSettingsModal: React.FC<{
     keys: TranslationApiKeys;
     onSave: (keys: TranslationApiKeys) => void;
 }> = ({ isOpen, onClose, keys, onSave }) => {
-    const [localKeys, setLocalKeys] = useState(keys);
-    const [visible, setVisible] = useState<Record<string, boolean>>({});
-
-    const toggleVis = (k: string) => setVisible(p => ({ ...p, [k]: !p[k] }));
-
-    const renderField = (label: string, key: keyof TranslationApiKeys | 'microsoft_region', placeholder: string, link: string) => (
-        <div className="mb-4">
-            <div className="flex justify-between items-center mb-1">
-                <label className="block text-sm font-medium text-gray-300">{label}</label>
-                <a href={link} target="_blank" rel="noreferrer" className="text-xs text-blue-400 hover:underline flex items-center">
-                    Get Key <ExternalLinkIcon className="w-3 h-3 ml-1" />
-                </a>
-            </div>
-            <div className="relative">
-                <input
-                    type={visible[key] ? 'text' : 'password'}
-                    className="w-full bg-gray-900 border border-gray-600 rounded-md px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder={placeholder}
-                    value={localKeys[key] || ''}
-                    onChange={e => setLocalKeys({ ...localKeys, [key]: e.target.value })}
-                />
-                <button type="button" onClick={() => toggleVis(key)} className="absolute right-2 top-2.5 text-gray-500 hover:text-white">
-                    {visible[key] ? <EyeOffIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
-                </button>
-            </div>
-        </div>
-    );
-
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Translation API Settings">
-            <div className="p-2">
-                <p className="text-sm text-gray-400 mb-4 bg-gray-800 p-3 rounded border border-gray-700">
-                    Configure professional translation APIs for faster and consistent results. These keys are stored locally in your browser.
-                </p>
-                {renderField("DeepL API Key", TranslationProvider.DEEPL, "e.g., xxxxx-xxxx-xxxx:fx", "https://www.deepl.com/pro-api")}
-                {renderField("Google Cloud Translate Key", TranslationProvider.GOOGLE, "AIzaSy...", "https://cloud.google.com/translate/docs/setup")}
-                <div className="grid grid-cols-2 gap-4">
-                    {renderField("Microsoft Key", TranslationProvider.MICROSOFT, "Key 1 or Key 2", "https://azure.microsoft.com/en-us/services/cognitive-services/translator/")}
-                    {renderField("Microsoft Region", "microsoft_region", "e.g., eastus, global", "#")}
-                </div>
-                <div className="grid grid-cols-2 gap-4 mt-4 border-t border-gray-700 pt-4">
-                    {renderField("LibreTranslate URL", "libre_base_url", "https://libretranslate.com", "https://github.com/LibreTranslate/LibreTranslate")}
-                    {renderField("LibreTranslate Key (Optional)", "libre_api_key", "API Key if required", "#")}
-                </div>
-                <div className="flex justify-end gap-2 mt-6">
-                    <Button variant="secondary" onClick={onClose}>Cancel</Button>
-                    <Button onClick={() => { onSave(localKeys); onClose(); }}>Save Keys</Button>
-                </div>
-            </div>
+            <TranslationSettingsContent
+                keys={keys}
+                onSave={(k) => { onSave(k); onClose(); }}
+                onCancel={onClose}
+                showCancelButton={true}
+            />
         </Modal>
     );
 };
@@ -238,8 +198,14 @@ export const LocalizationView: React.FC = () => {
                             <div className="border-t border-gray-700 pt-4">
                                 <div className="flex justify-between items-center mb-1">
                                     <label className="block text-sm font-medium text-gray-300">翻译引擎</label>
-                                    <button onClick={() => setIsSettingsOpen(true)} className="text-gray-400 hover:text-white" title="API Settings">
+                                    <button onClick={() => setIsSettingsOpen(true)} className="text-gray-400 hover:text-white mr-2" title="Quick API Settings">
                                         <SettingsIcon className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                        onClick={() => (context as any).setCurrentView('settings')}
+                                        className="text-[10px] text-blue-400 hover:text-blue-300 border border-blue-500/30 px-2 py-0.5 rounded hover:bg-blue-900/20 transition-colors"
+                                    >
+                                        Full Settings
                                     </button>
                                 </div>
                                 <Select value={selectedProvider} onChange={e => setSelectedProvider(e.target.value as TranslationProvider)}>

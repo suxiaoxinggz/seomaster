@@ -151,7 +151,7 @@ const ArticleGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
 
         // Validation: If using API, check key exists
         if (translationProvider !== TranslationProvider.LLM && !apiKeys[translationProvider]) {
-            toast.error(`Missing API Key for ${translationProvider}. Please configure in Localization Center.`);
+            toast.error(`Missing API Key for ${translationProvider}. Please configure in Model Settings.`);
             return;
         }
         if (translationProvider === TranslationProvider.LLM && !currentSelectedModel) {
@@ -384,12 +384,22 @@ const ArticleGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
 
                         {/* NEW: Translation Strategy Selector */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center">
-                                <GlobeIcon className="w-4 h-4 mr-2" />
-                                翻译策略 (Translation)
-                            </label>
-                            <div className="flex gap-2 mb-2">
-                                <Select value={translationProvider} onChange={(e) => setTranslationProvider(e.target.value as TranslationProvider)}>
+                            <div className="flex justify-between items-center mb-2">
+                                <label className="block text-sm font-medium text-gray-300 flex items-center">
+                                    <GlobeIcon className="w-4 h-4 mr-2" />
+                                    翻译策略 (Translation)
+                                </label>
+                                <Button
+                                    variant="link"
+                                    size="sm"
+                                    className="text-xs text-blue-400 hover:text-blue-300 p-0 h-auto"
+                                    onClick={() => setPage && setPage('settings')}
+                                >
+                                    去模型设置配置 &rarr;
+                                </Button>
+                            </div>
+                            <div className="flex gap-2 mb-2 items-center">
+                                <Select className="flex-1" value={translationProvider} onChange={(e) => setTranslationProvider(e.target.value as TranslationProvider)}>
                                     <option value={TranslationProvider.LLM}>智能 AI (LLM)</option>
                                     <option value={TranslationProvider.DEEPL}>DeepL API</option>
                                     <option value={TranslationProvider.GOOGLE}>Google Translate</option>
@@ -397,10 +407,9 @@ const ArticleGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
                                     <option value={TranslationProvider.LIBRE}>LibreTranslate (Free/Self-Hosted)</option>
                                 </Select>
                                 {translationProvider !== TranslationProvider.LLM && (
-                                    <div className={`flex items-center px-2 text-xs rounded border ${(
-                                        translationProvider === TranslationProvider.LIBRE && !apiKeys.libre_api_key && !apiKeys.libre_base_url // Libre is lenient, green if default
-                                            ? true
-                                            : !!apiKeys[translationProvider]
+                                    <div className={`flex items-center px-2 py-2 text-xs rounded border whitespace-nowrap ${(translationProvider === TranslationProvider.LIBRE && !apiKeys.libre_api_key && !apiKeys.libre_base_url
+                                        ? true
+                                        : !!apiKeys[translationProvider]
                                     ) ? 'border-green-800 bg-green-900/30 text-green-400' : 'border-red-800 bg-red-900/30 text-red-400'}`}>
                                         {(translationProvider === TranslationProvider.LIBRE && !apiKeys.libre_api_key) ? 'Public/Open' : (apiKeys[translationProvider] ? 'Key Configured' : 'Missing Key')}
                                     </div>

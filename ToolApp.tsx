@@ -452,7 +452,6 @@ const AppContent: React.FC = () => {
                         <PageContainer isVisible={page === 'account'}><AccountSettings /></PageContainer>
                     </main>
                 </div>
-            )
             )}
         </AppContext.Provider>
     );

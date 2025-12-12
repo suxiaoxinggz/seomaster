@@ -336,25 +336,40 @@ export const generateLsiForNode = async (context: any, model: Model): Promise<st
         .replace('{extraInstructions}', context.originalPrompt || 'None') // Context key from component is 'originalPrompt' (mapped to extraInstructions)
         .replace('{existingLSI}', context.existingLSI.join(', ') || 'None');
 
+    let cleanedResponse = '';
+    let json: any = null;
+
     try {
         const rawResponse = await callLlm(prompt, model, { jsonMode: true });
-        const cleanedResponse = cleanModelOutput(rawResponse);
-        let json = extractValidJSON(cleanedResponse);
+        cleanedResponse = cleanModelOutput(rawResponse);
+        json = extractValidJSON(cleanedResponse);
+
+        // Debug Log: Inspect what the model actually returned
+        if (!Array.isArray(json)) {
+            console.warn("LSI Generation: Received Object instead of Array. Content:", JSON.stringify(json));
+        }
 
         // Robust handling: If LLM returns object { lsi: [...] } instead of direct array [...]
         if (!Array.isArray(json) && typeof json === 'object' && json !== null) {
-            if (Array.isArray(json.lsi)) {
-                json = json.lsi;
-            } else if (Array.isArray(json.keywords)) {
-                json = json.keywords;
-            } else if (Array.isArray(json.LSI)) { // Case sensitive check just in case
-                json = json.LSI;
+            // 1. Try known keys first
+            if (Array.isArray(json.lsi)) json = json.lsi;
+            else if (Array.isArray(json.keywords)) json = json.keywords;
+            else if (Array.isArray(json.LSI)) json = json.LSI;
+            else {
+                // 2. Fallback: Find ANY array in value
+                const foundArray = Object.values(json).find(val => Array.isArray(val));
+                if (foundArray) {
+                    console.log("LSI Generation: Found hidden array in response object. Using it.");
+                    json = foundArray;
+                }
             }
         }
 
         return LsiSchema.parse(json);
     } catch (error) {
         console.error("LSI Generation Error:", error);
+        console.error("Raw Response causing error:", cleanedResponse);
+        console.error("Parsed JSON causing error:", JSON.stringify(json));
         throw error;
     }
 };

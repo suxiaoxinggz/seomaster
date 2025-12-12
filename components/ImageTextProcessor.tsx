@@ -18,6 +18,7 @@ import Toggle from './ui/Toggle';
 import { markdownToHtml } from '../services/formatters/shared/utils';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
 import { ImageSettingsContent } from './settings/ImageSettingsContent';
 
 // --- SUB-COMPONENTS ---
@@ -1133,6 +1134,7 @@ const ImageTextProcessor: React.FC = () => {
                         )}
                         <ReactMarkdown
                             remarkPlugins={[remarkGfm]}
+                            rehypePlugins={[rehypeRaw]}
                             components={{
                                 img: ({ node, ...props }) => (
                                     <img {...props} className="rounded-lg shadow-md max-w-full mx-auto my-4" alt={props.alt || ''} />

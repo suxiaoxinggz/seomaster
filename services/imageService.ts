@@ -21,19 +21,21 @@ const standardizeToUrl = (input: string | Blob, mimeType: string = 'image/png'):
     }
 
     if (typeof input === 'string') {
+        const trimmed = input.trim();
         // Case A: Already a Data URL
-        if (input.startsWith('data:')) {
-            return input;
+        if (trimmed.startsWith('data:')) {
+            return trimmed;
         }
         // Case B: Base64 Raw String (detect by lack of http and length/chars)
-        // Heuristic: If it doesn't look like a URL and is long, treat as base64
-        if (!input.startsWith('http') && !input.startsWith('/') && input.length > 500) {
-            // Clean newlines just in case
-            const cleanB64 = input.replace(/\s/g, '');
+        // Heuristic: If it doesn't look like a URL and is long, treat as base64. 
+        // We generally assume > 500 chars is likely content/base64, but let's be careful about long URLs.
+        // Checking for spaces is key - Base64 shouldn't have spaces (except newlines which we strip).
+        if (!trimmed.startsWith('http') && !trimmed.startsWith('/') && trimmed.length > 500 && !trimmed.includes(' ')) {
+            const cleanB64 = trimmed.replace(/\s/g, '');
             return `data:${mimeType};base64,${cleanB64}`;
         }
-        // Case C: Standard URL (HTTP/HTTPS)
-        return input;
+        // Case C: Standard URL (HTTP/HTTPS) or Relative
+        return trimmed;
     }
 
     return '';
@@ -260,11 +262,21 @@ const normalizeOpenRouterResponse = (data: any, params: OpenRouterParams): Image
                 }
             }
 
-            // Strategy B: Regex for loose url or base64
-            if (!finalUrl && (content.startsWith("http") || content.startsWith("data:"))) {
-                finalUrl = content.trim();
+            // Strategy B: Regex for HTML <img src="..."> (Some older models fallback to HTML)
+            if (!finalUrl) {
+                const htmlMatch = content.match(/<img\s+[^>]*src="([^"]*)"/i);
+                if (htmlMatch && htmlMatch[1]) {
+                    finalUrl = htmlMatch[1];
+                }
             }
-            // Strategy C: Check for 'url' field in content if it's structured (rare but possible in some proxies)
+
+            // Strategy C: Regex for loose url or base64 at start of content
+            if (!finalUrl) {
+                const trimmed = content.trim();
+                if (trimmed.startsWith("http") || trimmed.startsWith("data:")) {
+                    finalUrl = trimmed;
+                }
+            }
 
             // If found, standardize it
             if (finalUrl) {
@@ -284,9 +296,8 @@ const normalizeOpenRouterResponse = (data: any, params: OpenRouterParams): Image
                 };
             } else {
                 // Fallback: If content doesn't look like an image, maybe it's an error message or just text
-                console.warn("OpenRouter response did not contain a recognizable image URL/Markdown. Content:", content);
+                console.warn("OpenRouter response did not contain a recognizable image URL, Markdown, or HTML. Content:", content);
                 console.warn("Full Choice Object:", JSON.stringify(choice, null, 2));
-                console.warn("Full Response Data:", JSON.stringify(data, null, 2));
                 return null;
             }
         }).filter(Boolean) as ImageObject[];

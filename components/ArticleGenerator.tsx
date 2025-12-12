@@ -75,6 +75,7 @@ const ArticleGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
     const [isLibraryModalOpen, setIsLibraryModalOpen] = useState(false);
     const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
     const [isContentModalOpen, setIsContentModalOpen] = useState(false);
+    const [previewMode, setPreviewMode] = useState<'edit' | 'preview'>('preview'); // Default to preview
 
     // Save modal specific state
     const [articleTitle, setArticleTitle] = useState('');
@@ -479,116 +480,143 @@ const ArticleGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
                         <div className="flex-1 grid grid-cols-2 gap-4 min-h-0 mb-4">
                             {/* LEFT: ORIGINAL */}
                             <div className="flex flex-col h-full">
-                                <div className="bg-gray-800 px-4 py-2 rounded-t-lg border-b border-gray-700 flex justify-between">
-                                    <span className="text-sm font-semibold text-gray-300">原文 (Original)</span>
+                                {/* DUAL VIEW CONTAINER - UPDATED */}
+                                <div className="flex-1 grid grid-cols-2 gap-4 min-h-0 mb-4">
+                                    {/* LEFT: ORIGINAL (With Preview/Edit Toggle) */}
+                                    <div className="flex flex-col h-full bg-gray-900 border border-gray-700 rounded-lg overflow-hidden">
+                                        <div className="bg-gray-800 px-4 py-2 border-b border-gray-700 flex justify-between items-center">
+                                            <span className="text-sm font-semibold text-gray-300">原文 (Original)</span>
+                                            <div className="flex bg-gray-900 rounded-lg p-1 gap-1">
+                                                <button
+                                                    onClick={() => setPreviewMode('edit')}
+                                                    className={`px-3 py-1 text-xs rounded-md transition-all ${previewMode === 'edit' ? 'bg-blue-600 text-white shadow' : 'text-gray-400 hover:text-white'}`}
+                                                >
+                                                    编辑 (Edit)
+                                                </button>
+                                                <button
+                                                    onClick={() => setPreviewMode('preview')}
+                                                    className={`px-3 py-1 text-xs rounded-md transition-all ${previewMode === 'preview' ? 'bg-blue-600 text-white shadow' : 'text-gray-400 hover:text-white'}`}
+                                                >
+                                                    预览 (Preview)
+                                                </button>
+                                            </div>
+                                        </div>
+                                        {previewMode === 'edit' ? (
+                                            <textarea
+                                                value={generatedArticle}
+                                                onChange={(e) => setGeneratedArticle(e.target.value)}
+                                                className="w-full flex-1 bg-gray-900 p-4 resize-none focus:outline-none text-sm font-mono text-gray-300 leading-relaxed"
+                                                placeholder="文章内容生成中..."
+                                            />
+                                        ) : (
+                                            <div className="w-full flex-1 bg-gray-900 p-6 overflow-y-auto prose prose-invert prose-sm max-w-none">
+                                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                                    {generatedArticle || '*No content to preview*'}
+                                                </ReactMarkdown>
+                                            </div>
+                                        )}
+                                    </div>
+
+
+                                    {/* RIGHT: TRANSLATION */}
+                                    <div className="flex flex-col h-full">
+                                        <div className="bg-gray-800 px-4 py-2 rounded-t-lg border-b border-gray-700 flex justify-between items-center">
+                                            <span className="text-sm font-semibold text-blue-400">中文译文 ({targetLanguage})</span>
+                                            <Button
+                                                onClick={handleTranslate}
+                                                isLoading={isTranslating}
+                                                size="sm"
+                                                variant="primary"
+                                                disabled={!generatedArticle || isTranslating}
+                                            >
+                                                {isTranslating ? '翻译中...' : '点击翻译'}
+                                            </Button>
+                                        </div>
+                                        <div className="w-full flex-1 bg-gray-800 border-l border-r border-b border-gray-700 rounded-b-lg p-4 whitespace-pre-wrap overflow-y-auto text-sm font-mono text-white relative">
+                                            {translatedArticle ? translatedArticle : (
+                                                <div className="flex items-center justify-center h-full text-gray-500 italic">
+                                                    {isTranslating ? 'Translating...' : '点击上方按钮开始翻译'}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
+                            </div>
+                )}
+                        </div>
+
+                        {/* Modals remain the same */}
+                        <Modal isOpen={isPromptModalOpen} onClose={() => setIsPromptModalOpen(false)} title="编辑文章提示">
+                            <textarea value={editingPrompt} onChange={(e) => setEditingPrompt(e.target.value)} rows={15} className="w-full bg-gray-900 border border-gray-600 rounded-md p-2" />
+                            <div className="flex justify-end mt-4">
+                                <Button onClick={() => { setPromptTemplate(editingPrompt); setIsPromptModalOpen(false); }}>保存提示</Button>
+                            </div>
+                        </Modal>
+
+                        <Modal isOpen={isLibraryModalOpen} onClose={() => setIsLibraryModalOpen(false)} title="从库中提取关键词">
+                            <div className="max-h-[60vh] overflow-y-auto">
+                                {keywordLibrary.length > 0 ? (
+                                    <ul className="space-y-2">
+                                        {keywordLibrary.map(sp => (
+                                            <li key={sp.id} className="p-3 bg-gray-700 rounded-lg hover:bg-gray-600 cursor-pointer" onClick={() => handleSelectSubProject(sp)}>
+                                                <p className="font-semibold text-white">{sp.name}</p>
+                                                <p className="text-sm text-gray-400">父项目: {projects.find(p => p.id === sp.parent_project_id)?.name}</p>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : <p className="text-gray-400 text-center">您的库中没有子项目。</p>}
+                            </div>
+                        </Modal>
+
+                        <Modal isOpen={isContentModalOpen} onClose={() => setIsContentModalOpen(false)} title="编辑内容">
+                            <div className="h-[75vh] flex flex-col">
                                 <textarea
                                     value={generatedArticle}
                                     onChange={(e) => setGeneratedArticle(e.target.value)}
-                                    className="w-full flex-1 bg-gray-800 border-l border-r border-b border-gray-700 rounded-b-lg p-4 resize-none focus:ring-2 focus:ring-blue-500 outline-none text-sm font-mono text-gray-300"
-                                    placeholder="文章内容生成中..."
+                                    className="w-full flex-grow bg-gray-900 border border-gray-600 rounded-md p-3 text-base resize-none"
+                                    autoFocus
                                 />
                             </div>
+                        </Modal>
 
-                            {/* RIGHT: TRANSLATION */}
-                            <div className="flex flex-col h-full">
-                                <div className="bg-gray-800 px-4 py-2 rounded-t-lg border-b border-gray-700 flex justify-between items-center">
-                                    <span className="text-sm font-semibold text-blue-400">中文译文 ({targetLanguage})</span>
-                                    <Button
-                                        onClick={handleTranslate}
-                                        isLoading={isTranslating}
-                                        size="sm"
-                                        variant="primary"
-                                        disabled={!generatedArticle || isTranslating}
-                                    >
-                                        {isTranslating ? '翻译中...' : '点击翻译'}
-                                    </Button>
-                                </div>
-                                <div className="w-full flex-1 bg-gray-800 border-l border-r border-b border-gray-700 rounded-b-lg p-4 whitespace-pre-wrap overflow-y-auto text-sm font-mono text-white relative">
-                                    {translatedArticle ? translatedArticle : (
-                                        <div className="flex items-center justify-center h-full text-gray-500 italic">
-                                            {isTranslating ? 'Translating...' : '点击上方按钮开始翻译'}
-                                        </div>
-                                    )}
+                        <Modal isOpen={isSaveModalOpen} onClose={handleCloseSaveModal} title="保存文章">
+                            <div className="space-y-4">
+                                <Input label="文章标题" value={articleTitle} onChange={(e) => setArticleTitle(e.target.value)} autoFocus />
+
+                                <Select label="父项目" value={saveToParentProject} onChange={(e) => { setSaveToParentProject(e.target.value); setSaveToSubProject(''); }}>
+                                    <option value="">选择父项目...</option>
+                                    {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                    <option value="create_new">+ 创建新项目</option>
+                                </Select>
+
+                                {saveToParentProject === 'create_new' && (
+                                    <div className="pl-4 mt-2 space-y-4 border-l-2 border-gray-600">
+                                        <Input label="新父项目名称" value={newParentProjectName} onChange={(e) => setNewParentProjectName(e.target.value)} />
+                                        <Input label="新子项目名称" value={newSubProjectName} onChange={(e) => setNewSubProjectName(e.target.value)} />
+                                    </div>
+                                )}
+
+                                {saveToParentProject && saveToParentProject !== 'create_new' && (
+                                    <>
+                                        <Select label="子项目" value={saveToSubProject} onChange={(e) => setSaveToSubProject(e.target.value)}>
+                                            <option value="">选择子项目...</option>
+                                            <option value="create_new">+ 创建新子项目</option>
+                                            {keywordLibrary.filter(sp => sp.parent_project_id === saveToParentProject).map(sp => <option key={sp.id} value={sp.id}>{sp.name}</option>)}
+                                        </Select>
+                                        {saveToSubProject === 'create_new' && (
+                                            <Input className="ml-4" label="新子项目名称" value={newSubProjectName} onChange={(e) => setNewSubProjectName(e.target.value)} />
+                                        )}
+                                    </>
+                                )}
+
+                                <div className="flex justify-end space-x-3 pt-4">
+                                    <Button variant="secondary" onClick={handleCloseSaveModal}>取消</Button>
+                                    <Button variant="primary" onClick={handleSaveArticle} disabled={isSaveDisabled()}>保存</Button>
                                 </div>
                             </div>
-                        </div>
+                        </Modal>
                     </div>
-                )}
-            </div>
-
-            {/* Modals remain the same */}
-            <Modal isOpen={isPromptModalOpen} onClose={() => setIsPromptModalOpen(false)} title="编辑文章提示">
-                <textarea value={editingPrompt} onChange={(e) => setEditingPrompt(e.target.value)} rows={15} className="w-full bg-gray-900 border border-gray-600 rounded-md p-2" />
-                <div className="flex justify-end mt-4">
-                    <Button onClick={() => { setPromptTemplate(editingPrompt); setIsPromptModalOpen(false); }}>保存提示</Button>
-                </div>
-            </Modal>
-
-            <Modal isOpen={isLibraryModalOpen} onClose={() => setIsLibraryModalOpen(false)} title="从库中提取关键词">
-                <div className="max-h-[60vh] overflow-y-auto">
-                    {keywordLibrary.length > 0 ? (
-                        <ul className="space-y-2">
-                            {keywordLibrary.map(sp => (
-                                <li key={sp.id} className="p-3 bg-gray-700 rounded-lg hover:bg-gray-600 cursor-pointer" onClick={() => handleSelectSubProject(sp)}>
-                                    <p className="font-semibold text-white">{sp.name}</p>
-                                    <p className="text-sm text-gray-400">父项目: {projects.find(p => p.id === sp.parent_project_id)?.name}</p>
-                                </li>
-                            ))}
-                        </ul>
-                    ) : <p className="text-gray-400 text-center">您的库中没有子项目。</p>}
-                </div>
-            </Modal>
-
-            <Modal isOpen={isContentModalOpen} onClose={() => setIsContentModalOpen(false)} title="编辑内容">
-                <div className="h-[75vh] flex flex-col">
-                    <textarea
-                        value={generatedArticle}
-                        onChange={(e) => setGeneratedArticle(e.target.value)}
-                        className="w-full flex-grow bg-gray-900 border border-gray-600 rounded-md p-3 text-base resize-none"
-                        autoFocus
-                    />
-                </div>
-            </Modal>
-
-            <Modal isOpen={isSaveModalOpen} onClose={handleCloseSaveModal} title="保存文章">
-                <div className="space-y-4">
-                    <Input label="文章标题" value={articleTitle} onChange={(e) => setArticleTitle(e.target.value)} autoFocus />
-
-                    <Select label="父项目" value={saveToParentProject} onChange={(e) => { setSaveToParentProject(e.target.value); setSaveToSubProject(''); }}>
-                        <option value="">选择父项目...</option>
-                        {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                        <option value="create_new">+ 创建新项目</option>
-                    </Select>
-
-                    {saveToParentProject === 'create_new' && (
-                        <div className="pl-4 mt-2 space-y-4 border-l-2 border-gray-600">
-                            <Input label="新父项目名称" value={newParentProjectName} onChange={(e) => setNewParentProjectName(e.target.value)} />
-                            <Input label="新子项目名称" value={newSubProjectName} onChange={(e) => setNewSubProjectName(e.target.value)} />
-                        </div>
-                    )}
-
-                    {saveToParentProject && saveToParentProject !== 'create_new' && (
-                        <>
-                            <Select label="子项目" value={saveToSubProject} onChange={(e) => setSaveToSubProject(e.target.value)}>
-                                <option value="">选择子项目...</option>
-                                <option value="create_new">+ 创建新子项目</option>
-                                {keywordLibrary.filter(sp => sp.parent_project_id === saveToParentProject).map(sp => <option key={sp.id} value={sp.id}>{sp.name}</option>)}
-                            </Select>
-                            {saveToSubProject === 'create_new' && (
-                                <Input className="ml-4" label="新子项目名称" value={newSubProjectName} onChange={(e) => setNewSubProjectName(e.target.value)} />
-                            )}
-                        </>
-                    )}
-
-                    <div className="flex justify-end space-x-3 pt-4">
-                        <Button variant="secondary" onClick={handleCloseSaveModal}>取消</Button>
-                        <Button variant="primary" onClick={handleSaveArticle} disabled={isSaveDisabled()}>保存</Button>
-                    </div>
-                </div>
-            </Modal>
-        </div>
-    );
+                );
 };
 
-export default ArticleGenerator;
+                export default ArticleGenerator;

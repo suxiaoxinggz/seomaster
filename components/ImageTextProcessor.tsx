@@ -16,6 +16,8 @@ import Checkbox from './ui/Checkbox';
 import Spinner from './ui/Spinner';
 import Toggle from './ui/Toggle';
 import { markdownToHtml } from '../services/formatters/shared/utils';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { ImageSettingsContent } from './settings/ImageSettingsContent';
 
 // --- SUB-COMPONENTS ---
@@ -49,22 +51,31 @@ const ImageCard: React.FC<{
     onToggleSelect: (id: string) => void;
     onViewImage: (image: ImageObject) => void;
 }> = ({ image, isSelected, onToggleSelect, onViewImage }) => (
-    <div className="relative group w-full h-full rounded-lg overflow-hidden border border-white/5 bg-gray-900 shadow-md transition-transform hover:scale-[1.02]">
-        <div className="absolute top-2 left-2 z-20 cursor-default" onClick={(e) => e.stopPropagation()}>
+    <div
+        className={`relative group w-full h-full rounded-lg overflow-hidden border transition-all hover:scale-[1.02] cursor-pointer ${isSelected ? 'border-blue-500 ring-2 ring-blue-500/50' : 'border-white/5 bg-gray-900 shadow-md'}`}
+        onClick={() => onToggleSelect(image.id)}
+    >
+        <div className="absolute top-2 left-2 z-20" onClick={(e) => e.stopPropagation()}>
             <Checkbox
-                id={`img - select - ${image.id} `}
+                id={`img-select-${image.id}`}
                 checked={isSelected}
                 onChange={() => onToggleSelect(image.id)}
-                className="transform scale-110"
-                aria-label={`Select image ${image.alt_description} `}
+                className="transform scale-110 shadow-lg"
+                aria-label={`Select image ${image.alt_description}`}
             />
         </div>
-        <div
-            className="w-full h-full cursor-pointer"
-            onClick={() => onViewImage(image)}
-        >
-            <div className={`absolute inset - 0 bg - blue - 600 / 20 transition - opacity ${isSelected ? 'opacity-100' : 'opacity-0'} `}></div>
-            <div className={`absolute inset - 0 border - 2 transition - all ${isSelected ? 'border-blue-500' : 'border-transparent'} `}></div>
+        <div className="absolute top-2 right-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+            <button
+                onClick={() => onViewImage(image)}
+                className="p-1.5 bg-black/60 hover:bg-black/80 text-white rounded-full backdrop-blur-sm transition-colors"
+                title="View Full Size"
+            >
+                <ExpandIcon className="w-4 h-4" />
+            </button>
+        </div>
+
+        <div className="w-full h-full">
+            <div className={`absolute inset-0 bg-blue-600/10 transition-opacity ${isSelected ? 'opacity-100' : 'opacity-0'}`}></div>
 
             <img src={image.url_regular} alt={image.alt_description} className="w-full h-full object-cover" loading="lazy" />
 
@@ -705,7 +716,7 @@ const ImageTextProcessor: React.FC = () => {
             switch (insertionStrategy) {
                 case 'h2_before': {
                     let h2Count = 0;
-                    tempContent = tempContent.replace(/^(## .*$)/gm, (match) => {
+                    tempContent = tempContent.replace(/^(##\s*.*$)/gm, (match) => {
                         if (h2Count < selected.length) {
                             const img = selected[h2Count % selected.length];
                             const insertion = imagePlaceholder(h2Count, img);
@@ -1028,17 +1039,17 @@ const ImageTextProcessor: React.FC = () => {
                     </div>
 
                     <div className="space-y-4">
-                        <div className="relative">
+                        <div className="flex flex-col gap-2">
                             <Input
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && handleGenerateClick()}
                                 placeholder="Describe the image (Prompt)"
-                                className="pr-20"
                             />
-                            <div className="absolute right-1 top-1 bottom-1">
-                                <Button size="sm" onClick={handleGenerateClick} isLoading={isLoading} className="h-full">Generate</Button>
-                            </div>
+                            <Button size="sm" onClick={handleGenerateClick} isLoading={isLoading} className="w-full">
+                                <WandIcon className="w-4 h-4 mr-2" />
+                                Generate Images
+                            </Button>
                         </div>
                     </div>
                 </Card>
@@ -1098,7 +1109,8 @@ const ImageTextProcessor: React.FC = () => {
                                     onClick={handleUpdateArticle}
                                     isLoading={isSaving}
                                     disabled={numSelected === 0}
-                                    className="bg-green-600 hover:bg-green-500 text-white"
+                                    className={`text-white ${numSelected === 0 ? 'opacity-50 cursor-not-allowed' : 'bg-green-600 hover:bg-green-500'}`}
+                                    title={numSelected === 0 ? "Select at least one image to update" : "Write images back to the article"}
                                 >
                                     <DocumentIcon className="w-4 h-4 mr-1" />
                                     回写文章 (Update Article)
@@ -1110,16 +1122,25 @@ const ImageTextProcessor: React.FC = () => {
                             </Button>
                         </div>
                     </div>
-                    <div className="flex-1 bg-white rounded-xl overflow-hidden shadow-2xl relative">
+                    <div className="flex-1 bg-gray-800 rounded-xl overflow-y-auto shadow-2xl relative p-8 prose prose-invert max-w-none">
                         {isProcessing && (
-                            <div className="absolute inset-0 bg-black/50 z-10 flex items-center justify-center backdrop-blur-sm">
+                            <div className="absolute inset-0 bg-black/50 z-10 flex items-center justify-center backdrop-blur-sm rounded-xl">
                                 <div className="text-white text-center">
                                     <Spinner size="lg" />
                                     <p className="mt-2">Processing images for persistence...</p>
                                 </div>
                             </div>
                         )}
-                        <iframe title="preview" srcDoc={finalPreview} className="w-full h-full border-0" sandbox="allow-same-origin" />
+                        <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            components={{
+                                img: ({ node, ...props }) => (
+                                    <img {...props} className="rounded-lg shadow-md max-w-full mx-auto my-4" alt={props.alt || ''} />
+                                )
+                            }}
+                        >
+                            {finalMarkdown}
+                        </ReactMarkdown>
                     </div>
                 </div>
             </div>

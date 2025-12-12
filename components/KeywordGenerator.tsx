@@ -45,6 +45,8 @@ const transformToRenderableMap = (map: KeywordMap): RenderLevel1Node[] => {
 
 const KeywordGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPage }) => {
     const context = useContext(AppContext);
+    const { models = [], defaultModelId, projects = [], keywordLibrary = [], fetchData, supabase, session, setNavigationPayload, seoConfig } = context || {};
+
     // Persist input state using local storage to prevent data loss on tab switch
     const [initialKeywords, setInitialKeywords] = useLocalStorage<string>('kg_initial_keywords', 'vividcozy bedding, bedding sets, buy vividcozy bedding');
     const [extraInstructions, setExtraInstructions] = useLocalStorage<string>('kg_extra_instructions', 'Focus on bedroom scenarios for young professionals.');
@@ -83,9 +85,6 @@ const KeywordGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
     const [newParentProjectName, setNewParentProjectName] = useState('');
 
     const [expandedL1Nodes, setExpandedL1Nodes] = useState<Record<string, boolean> | null>(null);
-
-
-    const { models = [], defaultModelId, projects = [], keywordLibrary = [], fetchData, supabase, session, setNavigationPayload, seoConfig } = context || {};
 
     const [selectedModelId, setSelectedModelId] = useState<string>(defaultModelId || (models[0]?.id) || '');
 

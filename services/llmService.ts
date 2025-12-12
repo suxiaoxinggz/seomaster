@@ -327,6 +327,31 @@ export const generateKeywordMap = async (initialKeywords: string, extraInstructi
     throw new Error("Unexpected error in generateKeywordMap");
 };
 
+// Helper: Recursively find the first array of strings in any object
+function findFirstStringArray(obj: any, maxDepth = 4): string[] | null {
+    if (!obj || typeof obj !== 'object' || maxDepth < 0) return null;
+
+    // Check if current object IS the array we want
+    if (Array.isArray(obj)) {
+        return obj.every(item => typeof item === 'string') ? obj : null;
+    }
+
+    // Iterate keys
+    for (const key of Object.keys(obj)) {
+        const val = obj[key];
+        // 1. Direct check
+        if (Array.isArray(val) && val.length > 0 && typeof val[0] === 'string') {
+            return val;
+        }
+        // 2. Recursive check
+        if (typeof val === 'object' && val !== null) {
+            const found = findFirstStringArray(val, maxDepth - 1);
+            if (found) return found;
+        }
+    }
+    return null;
+}
+
 export const generateLsiForNode = async (context: any, model: Model): Promise<string[]> => {
     const prompt = LSI_GENERATION_PROMPT_TEMPLATE
         .replace(/{level2Keyword}/g, context.level2Keyword)
@@ -349,19 +374,12 @@ export const generateLsiForNode = async (context: any, model: Model): Promise<st
             console.warn("LSI Generation: Received Object instead of Array. Content:", JSON.stringify(json));
         }
 
-        // Robust handling: If LLM returns object { lsi: [...] } instead of direct array [...]
+        // Robust handling: If LLM returns object { lsi: [...] } or tool calls { arguments: { query: [...] } }
         if (!Array.isArray(json) && typeof json === 'object' && json !== null) {
-            // 1. Try known keys first
-            if (Array.isArray(json.lsi)) json = json.lsi;
-            else if (Array.isArray(json.keywords)) json = json.keywords;
-            else if (Array.isArray(json.LSI)) json = json.LSI;
-            else {
-                // 2. Fallback: Find ANY array in value
-                const foundArray = Object.values(json).find(val => Array.isArray(val));
-                if (foundArray) {
-                    console.log("LSI Generation: Found hidden array in response object. Using it.");
-                    json = foundArray;
-                }
+            const extracted = findFirstStringArray(json);
+            if (extracted) {
+                console.log("LSI Generation: Recursively found hidden array in response. Using it.");
+                json = extracted;
             }
         }
 

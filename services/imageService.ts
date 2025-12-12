@@ -271,7 +271,9 @@ const normalizeOpenRouterResponse = (data: any, params: OpenRouterParams): Image
                 };
             } else {
                 // Fallback: If content doesn't look like an image, maybe it's an error message or just text
-                console.warn("OpenRouter response did not contain a recognizable image URL/Markdown:", content);
+                console.warn("OpenRouter response did not contain a recognizable image URL/Markdown. Content:", content);
+                console.warn("Full Choice Object:", JSON.stringify(choice, null, 2));
+                console.warn("Full Response Data:", JSON.stringify(data, null, 2));
                 return null;
             }
         }).filter(Boolean) as ImageObject[];

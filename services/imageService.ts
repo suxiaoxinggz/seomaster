@@ -278,6 +278,14 @@ const normalizeOpenRouterResponse = (data: any, params: OpenRouterParams): Image
                 }
             }
 
+            // Fallback D: Brute force recursive search for ANY image URL in the response (if nothing found yet)
+            if (!finalUrl) {
+                const recursiveUrls = findImageUrlsRecursively(choice);
+                if (recursiveUrls.length > 0) {
+                    finalUrl = recursiveUrls[0];
+                }
+            }
+
             // If found, standardize it
             if (finalUrl) {
                 finalUrl = standardizeToUrl(finalUrl, 'image/png');
@@ -295,7 +303,7 @@ const normalizeOpenRouterResponse = (data: any, params: OpenRouterParams): Image
                     height: params.height || 1024,
                 };
             } else {
-                // Fallback: If content doesn't look like an image, maybe it's an error message or just text
+                // Final Fallback: If content doesn't look like an image, maybe it's an error message or just text
                 console.warn("OpenRouter response did not contain a recognizable image URL, Markdown, or HTML. Content:", content);
                 console.warn("Full Choice Object:", JSON.stringify(choice, null, 2));
                 return null;
@@ -328,11 +336,24 @@ const normalizeOpenRouterResponse = (data: any, params: OpenRouterParams): Image
 };
 
 const normalizeNebiusResponse = (data: any, params: NebiusParams): ImageObject[] => {
-    if (!data.data || !Array.isArray(data.data)) return [];
+    let rawUrls: string[] = [];
 
-    return data.data.map((item: any, index: number) => {
-        const rawContent = item.b64_json || item.url;
-        const finalUrl = standardizeToUrl(rawContent, 'image/png');
+    // 1. Standard Path
+    if (data.data && Array.isArray(data.data)) {
+        rawUrls = data.data.map((item: any) => item.b64_json || item.url).filter(Boolean);
+    }
+
+    // 2. Fallback Path (Robustness)
+    if (rawUrls.length === 0) {
+        rawUrls = findImageUrlsRecursively(data);
+    }
+
+    if (rawUrls.length === 0 && data) {
+        console.warn("Nebius normalization failed. Dumping:", data);
+    }
+
+    return rawUrls.map((url, index) => {
+        const finalUrl = standardizeToUrl(url, 'image/png');
 
         return {
             id: `nebius-${Date.now()}-${index}`,
@@ -350,12 +371,21 @@ const normalizeNebiusResponse = (data: any, params: NebiusParams): ImageObject[]
 };
 
 const normalizeZhipuResponse = (data: any, params: ZhipuImageParams): ImageObject[] => {
-    if (!data.data || !Array.isArray(data.data)) return [];
+    let rawUrls: string[] = [];
     const [width, height] = params.size.split('x').map(Number);
 
-    return data.data.map((item: any, index: number) => {
-        const rawContent = item.url;
-        const finalUrl = standardizeToUrl(rawContent, 'image/png');
+    // 1. Standard Path
+    if (data.data && Array.isArray(data.data)) {
+        rawUrls = data.data.map((item: any) => item.url).filter(Boolean);
+    }
+
+    // 2. Fallback Path
+    if (rawUrls.length === 0) {
+        rawUrls = findImageUrlsRecursively(data);
+    }
+
+    return rawUrls.map((url, index) => {
+        const finalUrl = standardizeToUrl(url, 'image/png');
 
         return {
             id: `zhipu-${Date.now()}-${index}`,
@@ -367,17 +397,26 @@ const normalizeZhipuResponse = (data: any, params: ZhipuImageParams): ImageObjec
             source_platform: ImageSource.ZHIPU_COGVIEW,
             source_url: 'https://bigmodel.cn/',
             width: width,
+            height: height,
         };
     });
 };
 
 const normalizeModelScopeResponse = (data: any, params: ModelScopeImageParams): ImageObject[] => {
-    // ModelScope via OpenAI-compatible API usually returns data array with urls
-    if (!data.data || !Array.isArray(data.data)) return [];
+    let rawUrls: string[] = [];
 
-    return data.data.map((item: any, index: number) => {
-        const rawContent = item.url || item.b64_json;
-        const finalUrl = standardizeToUrl(rawContent, 'image/png');
+    // 1. Standard Path (ModelScope/OpenAI Compatible)
+    if (data.data && Array.isArray(data.data)) {
+        rawUrls = data.data.map((item: any) => item.url || item.b64_json).filter(Boolean);
+    }
+
+    // 2. Fallback Path
+    if (rawUrls.length === 0) {
+        rawUrls = findImageUrlsRecursively(data);
+    }
+
+    return rawUrls.map((url, index) => {
+        const finalUrl = standardizeToUrl(url, 'image/png');
 
         return {
             id: `ms-${Date.now()}-${index}`,
@@ -395,11 +434,20 @@ const normalizeModelScopeResponse = (data: any, params: ModelScopeImageParams): 
 };
 
 const normalizeVolcEngineResponse = (data: any, params: VolcEngineImageParams): ImageObject[] => {
-    // VolcEngine (Dream AI) returns: { data: [ { url: "..." } ] }
-    if (!data.data || !Array.isArray(data.data)) return [];
+    let rawUrls: string[] = [];
 
-    return data.data.map((item: any, index: number) => {
-        const finalUrl = standardizeToUrl(item.url);
+    // 1. Standard Path
+    if (data.data && Array.isArray(data.data)) {
+        rawUrls = data.data.map((item: any) => item.url).filter(Boolean);
+    }
+
+    // 2. Fallback Path
+    if (rawUrls.length === 0) {
+        rawUrls = findImageUrlsRecursively(data);
+    }
+
+    return rawUrls.map((url, index) => {
+        const finalUrl = standardizeToUrl(url);
 
         return {
             id: `volc-${Date.now()}-${index}`,

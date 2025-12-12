@@ -49,7 +49,12 @@ const KeywordGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
     const [initialKeywords, setInitialKeywords] = useLocalStorage<string>('kg_initial_keywords', 'vividcozy bedding, bedding sets, buy vividcozy bedding');
     const [extraInstructions, setExtraInstructions] = useLocalStorage<string>('kg_extra_instructions', 'Focus on bedroom scenarios for young professionals.');
 
-    const [generationModel, setGenerationModel] = useLocalStorage<Model | null>('kg_generation_model', null);
+    const [generationModelId, setGenerationModelId] = useLocalStorage<string | null>('kg_generation_model_id', null);
+
+    // Security Fix: Derive model from context instead of storing full object (with API key) in localStorage
+    const generationModel = useMemo(() =>
+        models.find(m => m.id === generationModelId) || null
+        , [models, generationModelId]);
 
     const [enableWebSearch, setEnableWebSearch] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -123,7 +128,7 @@ const KeywordGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
             const result = await generateKeywordMap(initialKeywords, extraInstructions, currentSelectedModel, promptTemplate);
             const renderableMap = transformToRenderableMap(result);
             setKeywordMap(renderableMap);
-            setGenerationModel(currentSelectedModel);
+            setGenerationModelId(currentSelectedModel.id);
             const initialExpandedState = renderableMap.reduce((acc, node) => {
                 acc[node.id] = true;
                 return acc;

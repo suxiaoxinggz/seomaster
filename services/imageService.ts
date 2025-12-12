@@ -786,7 +786,7 @@ export const fetchOpenRouterImages = async (params: OpenRouterParams, apiKey: st
         messages: [
             {
                 role: 'system',
-                content: 'You are an image generation tool. You must ONLY response with a single markdown image link. Format: ![description](url). Do not provide any other text, explanation, or chat. Just the markdown link.'
+                content: 'You are an image generation tool. Please generate an image based on the user prompt. If you support native image output, verify the request and generate the image. If you are a text-only model, provide a markdown image link to a relevant image in the format ![description](url).'
             },
             {
                 role: 'user',
@@ -1119,8 +1119,9 @@ export const fetchAvailableImageModels = async (source: ImageSource, keys: Image
             const orData = await orRes.json();
             // Filter heuristically for image models if possible, or just return all
             // OpenRouter data includes 'architecture'. We can check for 'diffusion' or similar.
+            // USER FEEDBACK: Show more models. Relaxing filter.
             return orData.data
-                .filter((m: any) => m.architecture?.model_type === 'text-to-image' || m.id.includes('diffusion') || m.id.includes('flux') || m.id.includes('image'))
+                //.filter((m: any) => m.architecture?.model_type === 'text-to-image' || m.id.includes('diffusion') || m.id.includes('flux') || m.id.includes('image'))
                 .map((m: any) => ({ id: m.id, name: m.name }));
 
         case ImageSource.REPLICATE:

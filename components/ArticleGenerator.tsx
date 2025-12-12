@@ -15,6 +15,7 @@ import { PencilIcon, ImageIcon, GlobeIcon } from './icons';
 import { toast } from 'react-hot-toast';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
 
 // Helper to format a sub-project into a string for the context textarea
 export const formatSubProjectForContext = (subProject: KeywordSubProject): string => {
@@ -512,7 +513,7 @@ const ArticleGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
                                         />
                                     ) : (
                                         <div className="w-full flex-1 bg-gray-900 p-6 overflow-y-auto prose prose-invert prose-sm max-w-none">
-                                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                            <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
                                                 {generatedArticle || '*No content to preview*'}
                                             </ReactMarkdown>
                                         </div>

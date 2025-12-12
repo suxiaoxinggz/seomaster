@@ -236,27 +236,69 @@ const normalizeCloudflareResponse = (blob: Blob, params: CloudflareParams): Imag
 };
 
 const normalizeOpenRouterResponse = (data: any, params: OpenRouterParams): ImageObject[] => {
-    // OpenRouter (and OpenAI) often return { data: [ { url: ... }, { b64_json: ... } ] }
-    if (!data.data || !Array.isArray(data.data)) return [];
+    // 1. Check for standard Chat Completion format with Markdown image
+    if (data.choices && Array.isArray(data.choices) && data.choices.length > 0) {
+        return data.choices.map((choice: any, index: number) => {
+            const content = choice.message?.content || "";
+            let finalUrl = "";
 
-    return data.data.map((item: any, index: number) => {
-        // Priority: b64_json (stable) > url (ephemeral)
-        const rawContent = item.b64_json || item.url;
-        const finalUrl = standardizeToUrl(rawContent, 'image/png');
+            // Strategy A: Regex for markdown image ![alt](url)
+            const mdMatch = content.match(/!\[.*?\]\((.*?)\)/);
+            if (mdMatch && mdMatch[1]) {
+                finalUrl = mdMatch[1];
+            }
+            // Strategy B: Regex for loose url or base64
+            else if (content.startsWith("http") || content.startsWith("data:")) {
+                finalUrl = content.trim();
+            }
+            // Strategy C: Check for 'url' field in content if it's structured (rare but possible in some proxies)
 
-        return {
-            id: `or-${Date.now()}-${index}`,
-            url_regular: finalUrl,
-            url_full: finalUrl,
-            alt_description: params.prompt,
-            author_name: 'OpenRouter',
-            author_url: 'https://openrouter.ai/',
-            source_platform: ImageSource.OPENROUTER,
-            source_url: 'https://openrouter.ai/',
-            width: params.width || 1024,
-            height: params.height || 1024,
-        };
-    });
+            // If found, standardize it
+            if (finalUrl) {
+                finalUrl = standardizeToUrl(finalUrl, 'image/png');
+
+                return {
+                    id: `or-${Date.now()}-${index}`,
+                    url_regular: finalUrl,
+                    url_full: finalUrl,
+                    alt_description: params.prompt,
+                    author_name: 'OpenRouter Model',
+                    author_url: 'https://openrouter.ai/',
+                    source_platform: ImageSource.OPENROUTER,
+                    source_url: 'https://openrouter.ai/',
+                    width: params.width || 1024,
+                    height: params.height || 1024,
+                };
+            } else {
+                // Fallback: If content doesn't look like an image, maybe it's an error message or just text
+                console.warn("OpenRouter response did not contain a recognizable image URL/Markdown:", content);
+                return null;
+            }
+        }).filter(Boolean) as ImageObject[];
+    }
+
+    // 2. Fallback: Check for 'data' array (Legacy/OpenAI image format)
+    if (data.data && Array.isArray(data.data)) {
+        return data.data.map((item: any, index: number) => {
+            const rawContent = item.b64_json || item.url;
+            const finalUrl = standardizeToUrl(rawContent, 'image/png');
+
+            return {
+                id: `or-legacy-${Date.now()}-${index}`,
+                url_regular: finalUrl,
+                url_full: finalUrl,
+                alt_description: params.prompt,
+                author_name: 'OpenRouter (Legacy format)',
+                author_url: 'https://openrouter.ai/',
+                source_platform: ImageSource.OPENROUTER,
+                source_url: 'https://openrouter.ai/',
+                width: params.width || 1024,
+                height: params.height || 1024,
+            };
+        });
+    }
+
+    return [];
 };
 
 const normalizeNebiusResponse = (data: any, params: NebiusParams): ImageObject[] => {
@@ -735,19 +777,23 @@ export const fetchOpenRouterImages = async (params: OpenRouterParams, apiKey: st
     // SAFE LAYER
     const safe = sanitizeImageParams(ImageSource.OPENROUTER, params);
 
-    // OpenRouter uses OpenAI-compatible image generation endpoint
-    const url = "https://openrouter.ai/api/v1/images/generations";
+    // OpenRouter uses OpenAI-compatible Chat Completions for image gen models
+    const url = "https://openrouter.ai/api/v1/chat/completions";
 
+    // Simplified Chat Prompt for image generation
     const body: any = {
         model: safe.model,
-        prompt: safe.prompt,
-        n: safe.per_page,
-        size: safe.width && safe.height ? `${safe.width}x${safe.height}` : undefined,
-        // Smart optimization: Request Base64 JSON if supported to avoid ephemeral URLs
-        response_format: "b64_json"
+        messages: [
+            {
+                role: "user",
+                content: safe.prompt
+            }
+        ],
+        // Note: For image gen models, we typically just send the prompt. 
+        // Some providers might need "modalities": ["image"], but mostly it's model-dependent.
     };
-    // Text-to-Image models on OpenRouter often accept negative_prompt
-    if (safe.negative_prompt) body.negative_prompt = safe.negative_prompt;
+
+    // We try to handle response parsing robustly below.
 
     const response = await fetchProxy({
         url: url,

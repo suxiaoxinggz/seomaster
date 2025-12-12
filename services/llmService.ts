@@ -339,7 +339,19 @@ export const generateLsiForNode = async (context: any, model: Model): Promise<st
     try {
         const rawResponse = await callLlm(prompt, model, { jsonMode: true });
         const cleanedResponse = cleanModelOutput(rawResponse);
-        const json = extractValidJSON(cleanedResponse);
+        let json = extractValidJSON(cleanedResponse);
+
+        // Robust handling: If LLM returns object { lsi: [...] } instead of direct array [...]
+        if (!Array.isArray(json) && typeof json === 'object' && json !== null) {
+            if (Array.isArray(json.lsi)) {
+                json = json.lsi;
+            } else if (Array.isArray(json.keywords)) {
+                json = json.keywords;
+            } else if (Array.isArray(json.LSI)) { // Case sensitive check just in case
+                json = json.LSI;
+            }
+        }
+
         return LsiSchema.parse(json);
     } catch (error) {
         console.error("LSI Generation Error:", error);

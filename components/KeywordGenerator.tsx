@@ -49,7 +49,7 @@ const KeywordGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
     const [initialKeywords, setInitialKeywords] = useLocalStorage<string>('kg_initial_keywords', 'vividcozy bedding, bedding sets, buy vividcozy bedding');
     const [extraInstructions, setExtraInstructions] = useLocalStorage<string>('kg_extra_instructions', 'Focus on bedroom scenarios for young professionals.');
 
-    const [generationModel, setGenerationModel] = useState<Model | null>(null);
+    const [generationModel, setGenerationModel] = useLocalStorage<Model | null>('kg_generation_model', null);
 
     const [enableWebSearch, setEnableWebSearch] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -249,7 +249,7 @@ const KeywordGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
             const uniqueTexts = [...new Set(nodesToTranslate.map(n => n.text))];
             if (uniqueTexts.length === 0) return;
 
-            const translationMap = await translateBatch(uniqueTexts, generationModel);
+            const translationMap = await translateBatch(uniqueTexts, modelToUse);
 
             const newTranslations: Record<string, string> = {};
             nodesToTranslate.forEach(node => {

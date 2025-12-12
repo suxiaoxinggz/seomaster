@@ -242,13 +242,26 @@ const normalizeOpenRouterResponse = (data: any, params: OpenRouterParams): Image
             const content = choice.message?.content || "";
             let finalUrl = "";
 
-            // Strategy A: Regex for markdown image ![alt](url)
-            const mdMatch = content.match(/!\[.*?\]\((.*?)\)/);
-            if (mdMatch && mdMatch[1]) {
-                finalUrl = mdMatch[1];
+            // Strategy X: Check for native 'images' array in message (Google/Gemini on OpenRouter)
+            if (choice.message?.images && Array.isArray(choice.message.images) && choice.message.images.length > 0) {
+                const imgObj = choice.message.images[0];
+                if (imgObj.image_url?.url) {
+                    finalUrl = imgObj.image_url.url;
+                } else if (imgObj.url) {
+                    finalUrl = imgObj.url;
+                }
             }
+
+            // Strategy A: Regex for markdown image ![alt](url)
+            if (!finalUrl) {
+                const mdMatch = content.match(/!\[.*?\]\((.*?)\)/);
+                if (mdMatch && mdMatch[1]) {
+                    finalUrl = mdMatch[1];
+                }
+            }
+
             // Strategy B: Regex for loose url or base64
-            else if (content.startsWith("http") || content.startsWith("data:")) {
+            if (!finalUrl && (content.startsWith("http") || content.startsWith("data:"))) {
                 finalUrl = content.trim();
             }
             // Strategy C: Check for 'url' field in content if it's structured (rare but possible in some proxies)

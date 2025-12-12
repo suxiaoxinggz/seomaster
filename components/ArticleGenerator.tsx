@@ -66,7 +66,8 @@ const ArticleGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
     // Control state
     const [isLoading, setIsLoading] = useState(false);
     const [isTranslating, setIsTranslating] = useState(false);
-    const [generationModel, setGenerationModel] = useState<Model | null>(null);
+    // Persist generationModel to allow saving after refresh
+    const [generationModel, setGenerationModel] = useLocalStorage<Model | null>('ag_generation_model', null);
 
     // Modal states
     const [isPromptModalOpen, setIsPromptModalOpen] = useState(false);
@@ -137,6 +138,7 @@ const ArticleGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
                     setGeneratedArticle(articleRef.current);
                 }
             );
+            // setGenerationModel is now a persistent setter
             setGenerationModel(currentSelectedModel);
             toast.success("Article generated successfully!");
         } catch (err) {
@@ -218,8 +220,20 @@ const ArticleGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
         setIsSaveModalOpen(true);
     };
 
+    // FIXED: handleSaveArticle with better validation and error reporting
     const handleSaveArticle = async () => {
-        if (!generationModel || !supabase || !session) return;
+        if (!generationModel) {
+            toast.error("错误：缺少生成模型记录 (Generation Model is missing)。请尝试重新生成文章。");
+            return;
+        }
+        if (!supabase) {
+            toast.error("系统错误：数据库连接未初始化。");
+            return;
+        }
+        if (!session) {
+            toast.error("请先登录 (Session missing)。");
+            return;
+        }
 
         let finalParentProjectId = saveToParentProject;
         let finalSubProjectId = saveToSubProject;

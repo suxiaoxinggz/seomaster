@@ -245,11 +245,13 @@ export const KEYWORD_MAP_JSON_STRUCTURE = `
 `;
 
 export const LSI_GENERATION_PROMPT_TEMPLATE = `
-Generate at least 10 new, unique LSI (Latent Semantic Indexing) keywords for the Level 2 keyword: "{level2Keyword}".
+Generate at least 15 new, unique LSI (Latent Semantic Indexing) keywords for the Level 2 keyword: "{level2Keyword}".
 
 **Context:**
 - Parent Topic: "{level1Keyword}"
 - User Intent: {level2Type}
+- Initial User Keywords: "{initialKeywords}"
+- Extra User Instructions: "{extraInstructions}"
 - Existing LSI (Avoid these): {existingLSI}
 
 **Output Requirement:**

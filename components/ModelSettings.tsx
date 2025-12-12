@@ -27,19 +27,19 @@ export const ModelSettings: React.FC = () => {
 
     // --- Image State (mirrors ImageTextProcessor) ---
     const [imageKeys, setImageKeys] = useLocalStorage<ImageApiKeys>('image_api_keys', {
-        [ImageSource.OPENAI]: '',
+        [ImageSource.POLLINATIONS]: '',
         [ImageSource.STABILITY]: '',
         [ImageSource.PIXABAY]: '',
         [ImageSource.UNSPLASH]: '',
         [ImageSource.DALLE3]: '',
         [ImageSource.REPLICATE]: '',
         [ImageSource.HUGGINGFACE]: '',
-        [ImageSource.CLOUDFLARE]: '',
         [ImageSource.OPENROUTER]: '',
         [ImageSource.NEBIUS]: '',
         [ImageSource.KOLARS]: '',
         [ImageSource.ZHIPU_COGVIEW]: '',
         [ImageSource.VOLCENGINE]: '',
+        [ImageSource.MODELSCOPE]: '',
         'cloudflare_account_id': '',
         'cloudflare_token': '',
         'r2_access_key_id': '',

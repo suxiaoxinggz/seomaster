@@ -1,4 +1,5 @@
 import { ImageSource, ImageObject, PixabayParams, UnsplashParams, KolarsParams, PollinationsParams, ReplicateParams, HuggingFaceParams, CloudflareParams, OpenRouterParams, NebiusParams, ZhipuImageParams, ModelScopeImageParams, VolcEngineImageParams, ImageApiKeys } from '../types';
+import { fetchProxy } from './proxyService';
 
 // --- CORE UTILITY: Smart Image Standardization ---
 
@@ -46,7 +47,15 @@ export const convertUrlToBase64 = async (url: string): Promise<string> => {
 
     try {
         // 2. Fetch the resource (works for blob: urls and public http urls)
-        const response = await fetch(url);
+        // 2. Fetch the resource (works for blob: urls and public http urls)
+        // Use proxy only if it's NOT a blob URL and starts with http (to avoid CORS)
+        let response;
+        if (url.startsWith('blob:')) {
+            response = await fetch(url);
+        } else {
+            response = await fetchProxy({ url: url, method: 'GET' });
+        }
+
         if (!response.ok) throw new Error(`Failed to fetch image: ${response.statusText}`);
 
         const blob = await response.blob();
@@ -449,7 +458,10 @@ export const fetchPixabayImages = async (params: PixabayParams, apiKey: string):
     if (params.safesearch) url.searchParams.append("safesearch", "true");
     if (params.editors_choice) url.searchParams.append("editors_choice", "true");
 
-    const response = await fetch(url.toString());
+    const response = await fetchProxy({
+        url: url.toString(),
+        method: 'GET'
+    });
     if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`Pixabay API error: ${response.status} - ${errorText}`);
@@ -465,7 +477,9 @@ export const fetchUnsplashImages = async (params: UnsplashParams, apiKey: string
     url.searchParams.append("per_page", params.per_page.toString());
     url.searchParams.append("orientation", params.orientation);
 
-    const response = await fetch(url.toString(), {
+    const response = await fetchProxy({
+        url: url.toString(),
+        method: 'GET',
         headers: {
             Authorization: `Client-ID ${apiKey}`
         }
@@ -502,13 +516,14 @@ export const fetchKolorsImages = async (params: KolarsParams, apiKey: string): P
     if (safe.negative_prompt) body.negative_prompt = safe.negative_prompt;
 
 
-    const response = await fetch(url, {
+    const response = await fetchProxy({
+        url: url,
         method: 'POST',
         headers: {
             'Authorization': `Bearer ${apiKey}`,
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify(body),
+        body: body,
     });
 
     if (!response.ok) {
@@ -580,13 +595,14 @@ export const fetchHuggingFaceImages = async (params: HuggingFaceParams, apiKey: 
         }
     };
 
-    const response = await fetch(url, {
+    const response = await fetchProxy({
+        url: url,
         method: "POST",
         headers: {
             "Authorization": `Bearer ${apiKey}`,
             "Content-Type": "application/json",
         },
-        body: JSON.stringify(payload),
+        body: payload,
     });
 
     if (!response.ok) {
@@ -627,13 +643,14 @@ export const fetchReplicateImages = async (params: ReplicateParams, apiKey: stri
     if (safe.negative_prompt) input.negative_prompt = safe.negative_prompt;
     if (safe.aspect_ratio) input.aspect_ratio = safe.aspect_ratio;
 
-    const startResponse = await fetch(startUrl, {
+    const startResponse = await fetchProxy({
+        url: startUrl,
         method: "POST",
         headers: {
             "Authorization": `Bearer ${apiKey}`,
             "Content-Type": "application/json",
         },
-        body: JSON.stringify({ input }),
+        body: { input },
     });
 
     if (!startResponse.ok) {
@@ -653,7 +670,9 @@ export const fetchReplicateImages = async (params: ReplicateParams, apiKey: stri
 
         await new Promise((resolve) => setTimeout(resolve, 1500)); // Poll every 1.5s
 
-        const pollResponse = await fetch(getUrl, {
+        const pollResponse = await fetchProxy({
+            url: getUrl,
+            method: 'GET',
             headers: {
                 "Authorization": `Bearer ${apiKey}`,
             },
@@ -690,13 +709,14 @@ export const fetchCloudflareImages = async (params: CloudflareParams, accountId:
     };
     if (safe.negative_prompt) body.negative_prompt = safe.negative_prompt;
 
-    const response = await fetch(url, {
+    const response = await fetchProxy({
+        url: url,
         method: "POST",
         headers: {
             "Authorization": `Bearer ${token}`,
             "Content-Type": "application/json",
         },
-        body: JSON.stringify(body),
+        body: body,
     });
 
     if (!response.ok) {
@@ -729,15 +749,16 @@ export const fetchOpenRouterImages = async (params: OpenRouterParams, apiKey: st
     // Text-to-Image models on OpenRouter often accept negative_prompt
     if (safe.negative_prompt) body.negative_prompt = safe.negative_prompt;
 
-    const response = await fetch(url, {
+    const response = await fetchProxy({
+        url: url,
         method: "POST",
         headers: {
             "Authorization": `Bearer ${apiKey}`,
             "Content-Type": "application/json",
-            "HTTP-Referer": window.location.origin, // Required by OpenRouter
+            "HTTP-Referer": window.location.origin,
             "X-Title": "SEO Copilot",
         },
-        body: JSON.stringify(body),
+        body: body,
     });
 
     if (!response.ok) {
@@ -769,14 +790,15 @@ export const fetchNebiusImages = async (params: NebiusParams, apiKey: string): P
     };
     if (safe.negative_prompt) body.negative_prompt = safe.negative_prompt;
 
-    const response = await fetch(url, {
+    const response = await fetchProxy({
+        url: url,
         method: "POST",
         headers: {
             "Authorization": `Bearer ${apiKey}`,
             "Content-Type": "application/json",
             "Accept": "application/json",
         },
-        body: JSON.stringify(body),
+        body: body,
     });
 
     if (!response.ok) {
@@ -803,13 +825,14 @@ export const fetchZhipuImages = async (params: ZhipuImageParams, apiKey: string)
         size: safe.size, // Already constructed in sanitize
     };
 
-    const response = await fetch(url, {
+    const response = await fetchProxy({
+        url: url,
         method: "POST",
         headers: {
             "Authorization": `Bearer ${apiKey}`,
             "Content-Type": "application/json",
         },
-        body: JSON.stringify(body),
+        body: body,
     });
 
     if (!response.ok) {
@@ -845,13 +868,14 @@ export const fetchModelScopeImages = async (params: ModelScopeImageParams, apiKe
     if (safe.seed) body.seed = safe.seed;
     if (safe.loras) body.loras = safe.loras;
 
-    const response = await fetch(url, {
+    const response = await fetchProxy({
+        url: url,
         method: "POST",
         headers: {
             "Authorization": `Bearer ${apiKey}`,
             "Content-Type": "application/json",
         },
-        body: JSON.stringify(body),
+        body: body,
     });
 
     if (!response.ok) {
@@ -886,13 +910,14 @@ export const fetchVolcEngineImages = async (params: VolcEngineImageParams, apiKe
     if (safe.seed) body.seed = safe.seed;
     if (safe.loras) body.loras = safe.loras;
 
-    const response = await fetch(url, {
+    const response = await fetchProxy({
+        url: url,
         method: "POST",
         headers: {
             "Authorization": `Bearer ${apiKey}`,
             "Content-Type": "application/json",
         },
-        body: JSON.stringify(body),
+        body: body,
     });
 
     if (!response.ok) {
@@ -924,13 +949,14 @@ export const fetchOpenAIImages = async (params: any, apiKey: string): Promise<Im
         quality: "standard"
     };
 
-    const response = await fetch(url, {
+    const response = await fetchProxy({
+        url: url,
         method: "POST",
         headers: {
             "Authorization": `Bearer ${apiKey}`,
             "Content-Type": "application/json",
         },
-        body: JSON.stringify(body),
+        body: body,
     });
 
     if (!response.ok) {
@@ -1023,7 +1049,9 @@ export const fetchAvailableImageModels = async (source: ImageSource, keys: Image
         case ImageSource.CLOUDFLARE:
             if (!keys.cloudflare_account_id || !keys.cloudflare_token) throw new Error("Missing Cloudflare Credentials");
             const cfUrl = `https://api.cloudflare.com/client/v4/accounts/${keys.cloudflare_account_id}/ai/models?search=text-to-image`;
-            const cfRes = await fetch(cfUrl, {
+            const cfRes = await fetchProxy({
+                url: cfUrl,
+                method: 'GET',
                 headers: { "Authorization": `Bearer ${keys.cloudflare_token}` }
             });
             if (!cfRes.ok) throw new Error("Failed to fetch Cloudflare models");
@@ -1032,7 +1060,9 @@ export const fetchAvailableImageModels = async (source: ImageSource, keys: Image
 
         case ImageSource.OPENROUTER:
             if (!keys[ImageSource.OPENROUTER]) throw new Error("Missing OpenRouter API Key");
-            const orRes = await fetch("https://openrouter.ai/api/v1/models", {
+            const orRes = await fetchProxy({
+                url: "https://openrouter.ai/api/v1/models",
+                method: 'GET',
                 headers: { "Authorization": `Bearer ${keys[ImageSource.OPENROUTER]}` }
             });
             if (!orRes.ok) throw new Error("Failed to fetch OpenRouter models");

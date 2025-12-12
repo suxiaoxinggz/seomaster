@@ -172,7 +172,12 @@ const KeywordGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
 
     const handleGenerateLsi = useCallback(async (level1Node: RenderLevel1Node, level2NodeId: string): Promise<void> => {
         const level2Node = level1Node.children.find(c => c.id === level2NodeId);
-        if (!level2Node || !keywordMap || !generationModel) return;
+        const modelToUse = generationModel || currentSelectedModel;
+
+        if (!level2Node || !keywordMap || !modelToUse) {
+            if (!modelToUse) setError("No model selected for generation.");
+            return;
+        }
 
         const contextForLsi = {
             initialKeywords,
@@ -184,7 +189,7 @@ const KeywordGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
             existingLSI: level2Node.lsi.map(l => l.text),
         };
 
-        const newLsis = await generateLsiForNode(contextForLsi, generationModel);
+        const newLsis = await generateLsiForNode(contextForLsi, modelToUse);
 
         setKeywordMap(currentMap => {
             if (!currentMap) return null;
@@ -212,10 +217,11 @@ const KeywordGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
                 };
             });
         });
-    }, [initialKeywords, extraInstructions, keywordMap, generationModel]);
+    }, [initialKeywords, extraInstructions, keywordMap, generationModel, currentSelectedModel]);
 
     const handleTranslateNode = useCallback(async (level1NodeId: string) => {
-        if (!generationModel || !keywordMap) return;
+        const modelToUse = generationModel || currentSelectedModel;
+        if (!modelToUse || !keywordMap) return;
 
         setTranslatingNodeId(level1NodeId);
         try {

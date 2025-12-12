@@ -19,7 +19,7 @@ export const LandingPage: React.FC = () => {
                             Login
                         </button>
                         <button
-                            onClick={() => navigate('/login')}
+                            onClick={() => navigate('/signup')}
                             className="px-4 py-2 bg-white text-slate-950 rounded-full font-medium hover:bg-slate-200 transition-all transform hover:scale-105"
                         >
                             Get Started
@@ -52,7 +52,7 @@ export const LandingPage: React.FC = () => {
 
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
                         <button
-                            onClick={() => navigate('/login')}
+                            onClick={() => navigate('/signup')}
                             className="px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-semibold flex items-center gap-2 transition-all shadow-lg shadow-indigo-500/20 group"
                         >
                             Start Free Trial
@@ -102,7 +102,7 @@ export const LandingPage: React.FC = () => {
                             price="$0"
                             features={['10 Daily Keyword Lookups', 'Standard AI Models', 'Community Support']}
                             cta="Start Free"
-                            action={() => navigate('/login')}
+                            action={() => navigate('/signup')}
                         />
                         <PricingCard
                             name="Pro"
@@ -110,7 +110,7 @@ export const LandingPage: React.FC = () => {
                             features={['Unlimited Keyword Lookups', 'GPT-4 & Claude 3 Opus', 'Priority Support', 'Access to APIs']}
                             popular
                             cta="Get Pro"
-                            action={() => navigate('/login?plan=pro')}
+                            action={() => navigate('/signup?plan=pro')}
                         />
                         <PricingCard
                             name="Agency"

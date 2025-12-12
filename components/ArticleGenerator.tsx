@@ -390,7 +390,7 @@ const ArticleGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
                                     翻译策略 (Translation)
                                 </label>
                                 <Button
-                                    variant="link"
+                                    variant="ghost"
                                     size="sm"
                                     className="text-xs text-blue-400 hover:text-blue-300 p-0 h-auto"
                                     onClick={() => setPage && setPage('settings')}

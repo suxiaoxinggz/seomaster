@@ -332,6 +332,8 @@ export const generateLsiForNode = async (context: any, model: Model): Promise<st
         .replace(/{level2Keyword}/g, context.level2Keyword)
         .replace('{level1Keyword}', context.level1Keyword)
         .replace('{level2Type}', context.level2Type)
+        .replace('{initialKeywords}', context.initialKeywords || '')
+        .replace('{extraInstructions}', context.originalPrompt || 'None') // Context key from component is 'originalPrompt' (mapped to extraInstructions)
         .replace('{existingLSI}', context.existingLSI.join(', ') || 'None');
 
     try {

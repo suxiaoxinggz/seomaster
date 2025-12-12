@@ -1,4 +1,5 @@
 import { TranslationProvider, TranslationApiKeys, Model } from '../types';
+import { fetchProxy } from './proxyService';
 
 /**
  * Maps readable language names to specific ISO codes required by each provider.
@@ -69,16 +70,17 @@ const translateDeepL = async (text: string, targetLang: string, key: string): Pr
         ? 'https://api-free.deepl.com/v2/translate'
         : 'https://api.deepl.com/v2/translate';
 
-    const response = await fetch(endpoint, {
+    const response = await fetchProxy({
+        url: endpoint,
         method: 'POST',
         headers: {
             'Authorization': `DeepL-Auth-Key ${key}`,
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
+        body: {
             text: [text],
             target_lang: getLanguageCode(targetLang, TranslationProvider.DEEPL)
-        })
+        }
     });
 
     if (!response.ok) {
@@ -97,14 +99,15 @@ const translateDeepL = async (text: string, targetLang: string, key: string): Pr
 const translateGoogle = async (text: string, targetLang: string, key: string): Promise<string> => {
     const url = `https://translation.googleapis.com/language/translate/v2?key=${key}`;
 
-    const response = await fetch(url, {
+    const response = await fetchProxy({
+        url: url,
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: {
             q: text,
             target: getLanguageCode(targetLang, TranslationProvider.GOOGLE),
-            format: 'text' // Use 'text' to prevent Google from escaping HTML entities double time if input is markdown
-        })
+            format: 'text'
+        }
     });
 
     if (!response.ok) {
@@ -134,10 +137,11 @@ const translateMicrosoft = async (text: string, targetLang: string, key: string,
         headers['Ocp-Apim-Subscription-Region'] = region;
     }
 
-    const response = await fetch(url, {
+    const response = await fetchProxy({
+        url: url,
         method: 'POST',
         headers: headers,
-        body: JSON.stringify([{ 'text': text }])
+        body: [{ 'text': text }]
     });
 
     if (!response.ok) {
@@ -170,10 +174,11 @@ const translateLibre = async (text: string, targetLang: string, baseUrl: string,
         body.api_key = key;
     }
 
-    const response = await fetch(url, {
+    const response = await fetchProxy({
+        url: url,
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
+        body: body
     });
 
     if (!response.ok) {

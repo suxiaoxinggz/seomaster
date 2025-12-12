@@ -8,7 +8,8 @@ load_dotenv()
 
 # Import routers (we will create these next)
 # Import routers
-from app.routers import dataforseo, llm, stripe_webhook, upload
+# Import routers
+from app.routers import dataforseo, llm, stripe_webhook, upload, proxy
 
 # ... (app init) ...
 
@@ -45,6 +46,7 @@ def root():
 # Include Routers
 app.include_router(dataforseo.router, prefix="/api/dataforseo", tags=["DataForSEO"])
 app.include_router(upload.router, prefix="/api/upload", tags=["Upload"])
+app.include_router(proxy.router, prefix="/api", tags=["Proxy"])
 
 @app.get("/config")
 def get_config():

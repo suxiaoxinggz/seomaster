@@ -13,6 +13,8 @@ import Modal from './ui/Modal';
 import Input from './ui/Input';
 import { PencilIcon, ImageIcon, GlobeIcon } from './icons';
 import { toast } from 'react-hot-toast';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 // Helper to format a sub-project into a string for the context textarea
 export const formatSubProjectForContext = (subProject: KeywordSubProject): string => {

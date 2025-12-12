@@ -70,11 +70,13 @@ const translateDeepL = async (text: string, targetLang: string, key: string): Pr
         ? 'https://api-free.deepl.com/v2/translate'
         : 'https://api.deepl.com/v2/translate';
 
+    // Use Query Param for Auth (More robust through proxies)
+    const urlWithAuth = `${endpoint}?auth_key=${encodeURIComponent(key)}`;
+
     const response = await fetchProxy({
-        url: endpoint,
+        url: urlWithAuth,
         method: 'POST',
         headers: {
-            'Authorization': `DeepL-Auth-Key ${key}`,
             'Content-Type': 'application/json'
         },
         body: {

@@ -8,6 +8,7 @@ interface ProxyOptions {
 
 /**
  * Helper to make requests via the backend proxy to bypass CORS.
+ * Standard implementation without WAF tunneling.
  */
 export const fetchProxy = async (options: ProxyOptions): Promise<any> => {
     const response = await fetch('/api/proxy', {
@@ -27,12 +28,6 @@ export const fetchProxy = async (options: ProxyOptions): Promise<any> => {
         const text = await response.text();
         throw new Error(`Proxy Error: ${response.status} - ${text}`);
     }
-
-    // Attempt to parse JSON, fallback to text/blob handled by caller if needed?
-    // The current proxy logic returns the raw content with the upstream content-type.
-    // fetch() in browser handles this. 
-    // If the upstream returns JSON, response.json() works.
-    // If image, response.blob() works.
 
     // We return the raw response object so the caller can decide (json vs blob)
     return response;

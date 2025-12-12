@@ -1,5 +1,4 @@
-import { TranslationProvider, TranslationApiKeys, Model } from '../types';
-import { fetchProxy } from './proxyService';
+import { TranslationProvider, TranslationApiKeys } from '../types';
 
 /**
  * Maps readable language names to specific ISO codes required by each provider.
@@ -70,19 +69,17 @@ const translateDeepL = async (text: string, targetLang: string, key: string): Pr
         ? 'https://api-free.deepl.com/v2/translate'
         : 'https://api.deepl.com/v2/translate';
 
-    // Use Query Param for Auth (More robust through proxies)
-    const urlWithAuth = `${endpoint}?auth_key=${encodeURIComponent(key)}`;
+    const params = new URLSearchParams();
+    params.append('text', text);
+    params.append('target_lang', getLanguageCode(targetLang, TranslationProvider.DEEPL));
 
-    const response = await fetchProxy({
-        url: urlWithAuth,
+    const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json'
+            'Authorization': `DeepL-Auth-Key ${key}`,
+            'Content-Type': 'application/x-www-form-urlencoded'
         },
-        body: {
-            text: [text],
-            target_lang: getLanguageCode(targetLang, TranslationProvider.DEEPL)
-        }
+        body: params
     });
 
     if (!response.ok) {
@@ -101,15 +98,14 @@ const translateDeepL = async (text: string, targetLang: string, key: string): Pr
 const translateGoogle = async (text: string, targetLang: string, key: string): Promise<string> => {
     const url = `https://translation.googleapis.com/language/translate/v2?key=${key}`;
 
-    const response = await fetchProxy({
-        url: url,
+    const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: {
+        body: JSON.stringify({
             q: text,
             target: getLanguageCode(targetLang, TranslationProvider.GOOGLE),
-            format: 'text'
-        }
+            format: 'text' // Use 'text' to prevent Google from escaping HTML entities double time if input is markdown
+        })
     });
 
     if (!response.ok) {
@@ -139,11 +135,10 @@ const translateMicrosoft = async (text: string, targetLang: string, key: string,
         headers['Ocp-Apim-Subscription-Region'] = region;
     }
 
-    const response = await fetchProxy({
-        url: url,
+    const response = await fetch(url, {
         method: 'POST',
         headers: headers,
-        body: [{ 'text': text }]
+        body: JSON.stringify([{ 'Text': text }])
     });
 
     if (!response.ok) {
@@ -157,67 +152,18 @@ const translateMicrosoft = async (text: string, targetLang: string, key: string,
 };
 
 /**
- * Executes a translation using LibreTranslate.
- * Supports both public and self-hosted instances.
- */
-const translateLibre = async (text: string, targetLang: string, baseUrl: string, key?: string): Promise<string> => {
-    // Default to public instance if no URL provided (Not recommended for production due to limits)
-    const url = (baseUrl || 'https://libretranslate.com').replace(/\/$/, '') + '/translate';
-
-    const body: any = {
-        q: text,
-        source: 'auto', // Auto-detect
-        target: targetLang.toLowerCase(), // LibreTranslate uses simple codes usually
-        format: 'text',
-        alternatives: 0
-    };
-
-    if (key) {
-        body.api_key = key;
-    }
-
-    const response = await fetchProxy({
-        url: url,
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: body
-    });
-
-    if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`LibreTranslate Error (${response.status}): ${errorText}`);
-    }
-
-    const data = await response.json();
-    return data.translatedText || '';
-};
-
-/**
  * Public Handler that routes to the correct provider.
  */
-// --- 4. LLM Logic ---
-import { callLlm } from './llmService';
-import { TRANSLATE_PROMPT_TEMPLATE } from '../constants';
-
 export const fetchTranslation = async (
     text: string,
     targetLang: string,
     provider: TranslationProvider,
-    keys: TranslationApiKeys,
-    model?: any // Optional Model for LLM provider
+    keys: TranslationApiKeys
 ): Promise<string> => {
     if (!text) return '';
 
     try {
         switch (provider) {
-            case TranslationProvider.LLM:
-                if (!model) throw new Error("LLM Model is required for LLM translation.");
-                // Use the new structured request with prompt template
-                // Ideally we import callLlm from llmService, but let's check imports first.
-                // Assuming we can pass the prompt constructed.
-                // We will use a helper here or import.
-                return await translateWithLlm(text, model);
-
             case TranslationProvider.DEEPL:
                 if (!keys[TranslationProvider.DEEPL]) throw new Error("DeepL API Key is missing. Please configure it in settings.");
                 return await translateDeepL(text, targetLang, keys[TranslationProvider.DEEPL].trim());
@@ -230,11 +176,6 @@ export const fetchTranslation = async (
                 if (!keys[TranslationProvider.MICROSOFT]) throw new Error("Microsoft Translator Key is missing. Please configure it in settings.");
                 return await translateMicrosoft(text, targetLang, keys[TranslationProvider.MICROSOFT].trim(), keys.microsoft_region?.trim() || '');
 
-            case TranslationProvider.LIBRE:
-                // Use default URL if not provided, but ideally user should provide one.
-                const libreUrl = keys.libre_base_url?.trim() || 'https://libretranslate.com';
-                return await translateLibre(text, targetLang, libreUrl, keys.libre_api_key?.trim());
-
             default:
                 throw new Error("Invalid Translation Provider selected.");
         }
@@ -242,13 +183,4 @@ export const fetchTranslation = async (
         console.error("Translation Service Error:", error);
         throw error; // Re-throw to be caught by the UI
     }
-};
-
-// Internal Helper for LLM Translation to avoid large circular dep issues in switch if possible,
-// but we need to import `translateText` logic from llmService or replicate it.
-// The cleanest way is to import the specific function from llmService.
-import { translateText as llmTranslateText } from './llmService';
-
-const translateWithLlm = async (text: string, model: any) => {
-    return await llmTranslateText(text, model);
 };

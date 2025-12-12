@@ -4,6 +4,8 @@ from typing import Optional, Dict, Any
 import httpx
 import logging
 
+import json
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -15,6 +17,8 @@ class ProxyRequest(BaseModel):
     method: str = "POST"
     headers: Optional[Dict[str, str]] = None
     body: Optional[Any] = None
+    payload: Optional[str] = None  # Base64 encoded body for WAF bypass
+    encoding: Optional[str] = None # 'base64'
 
 # Whitelist of allowed domains for security
 ALLOWED_DOMAINS = [
@@ -51,7 +55,7 @@ async def proxy_request(request: ProxyRequest):
         from urllib.parse import urlparse
         parsed_url = urlparse(request.url)
         domain = parsed_url.netloc
-        
+
         if domain not in ALLOWED_DOMAINS:
             # Check for subdomains if needed, or exact match
             # For strict security, we can require exact match or explicit suffix check

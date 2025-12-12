@@ -83,6 +83,14 @@ const KeywordGenerator: React.FC<{ setPage?: (page: Page) => void }> = ({ setPag
     const { models = [], defaultModelId, projects = [], keywordLibrary = [], fetchData, supabase, session, setNavigationPayload, seoConfig } = context || {};
 
     const [selectedModelId, setSelectedModelId] = useState<string>(defaultModelId || (models[0]?.id) || '');
+
+    // Fix: Sync selectedModelId when models are loaded (async)
+    React.useEffect(() => {
+        if ((!selectedModelId || !models.find(m => m.id === selectedModelId)) && models.length > 0) {
+            setSelectedModelId(defaultModelId || models[0].id);
+        }
+    }, [models, defaultModelId, selectedModelId]);
+
     const currentSelectedModel = models.find(m => m.id === selectedModelId);
 
     if (!context) return null;

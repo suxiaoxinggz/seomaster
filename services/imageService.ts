@@ -785,8 +785,12 @@ export const fetchOpenRouterImages = async (params: OpenRouterParams, apiKey: st
         model: safe.model,
         messages: [
             {
-                role: "user",
-                content: safe.prompt
+                role: 'system',
+                content: 'You are an image generation tool. You must ONLY response with a single markdown image link. Format: ![description](url). Do not provide any other text, explanation, or chat. Just the markdown link.'
+            },
+            {
+                role: 'user',
+                content: `Generate an image of: ${params.prompt}`
             }
         ],
         // Note: For image gen models, we typically just send the prompt. 

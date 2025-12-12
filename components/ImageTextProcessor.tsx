@@ -570,8 +570,16 @@ const ImageTextProcessor: React.FC = () => {
                 // Execute all uploads in parallel
                 const uploadedImages = await Promise.all(result.map(processImage));
                 setImages(uploadedImages);
+                // Auto-select all images by default
+                const newSelection: Record<string, boolean> = {};
+                uploadedImages.forEach(img => newSelection[img.id] = true);
+                setSelectedImages(newSelection);
             } else {
                 setImages(result);
+                // Auto-select all images by default
+                const newSelection: Record<string, boolean> = {};
+                result.forEach(img => newSelection[img.id] = true);
+                setSelectedImages(newSelection);
             }
 
         } catch (err) {

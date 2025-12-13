@@ -535,7 +535,7 @@ export const fetchReplicateImages = async (params: ReplicateParams, apiKey: stri
 };
 
 // --- CLOUDFLARE WORKERS AI PRESETS ---
-const CLOUDFLARE_MODELS = [
+export const CLOUDFLARE_MODELS = [
     { id: '@cf/black-forest-labs/flux-2-dev', name: 'FLUX 2 Dev', mode: 'multipart-base64' },
     { id: '@cf/black-forest-labs/flux-1-schnell', name: 'FLUX 1 Schnell', mode: 'json-base64' },
     { id: '@cf/runwayml/stable-diffusion-v1-5-img2img', name: 'Stable Diffusion v1.5 Img2Img', mode: 'json-binary' },

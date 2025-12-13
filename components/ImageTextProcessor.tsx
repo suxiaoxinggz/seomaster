@@ -1,8 +1,9 @@
+
 import React, { useState, useContext, useEffect, useCallback, useMemo } from 'react';
 import { AppContext } from '../context/AppContext';
 import { ImageSource, ImageApiKeys, ImageObject, Article, PixabayParams, UnsplashParams, KolarsParams, PollinationsParams, DalleParams, StabilityParams, SavedImageSet, PostToPublish, Project, KeywordSubProject, CloudflareParams, OpenRouterParams, NebiusParams, ZhipuImageParams } from '../types';
 import useLocalStorage from '../hooks/useLocalStorage';
-import { fetchPixabayImages, fetchUnsplashImages, fetchKolorsImages, fetchPollinationsImages, fetchReplicateImages, fetchHuggingFaceImages, fetchCloudflareImages, fetchOpenRouterImages, fetchNebiusImages, fetchZhipuImages, fetchModelScopeImages, fetchVolcEngineImages, fetchOpenAIImages, fetchStabilityImages, fetchAvailableImageModels, convertUrlToBase64 } from '../services/imageService';
+import { fetchPixabayImages, fetchUnsplashImages, fetchKolarsImages, fetchPollinationsImages, fetchReplicateImages, fetchHuggingFaceImages, fetchCloudflareImages, fetchOpenRouterImages, fetchNebiusImages, fetchZhipuImages, fetchModelScopeImages, fetchVolcEngineImages, fetchOpenAIImages, fetchStabilityImages, fetchAvailableImageModels, convertUrlToBase64, CLOUDFLARE_MODELS } from '../services/imageService';
 import { fetchProxy } from '../services/proxyService';
 import { uploadImageToBackend } from '../services/api';
 import { toast } from 'react-hot-toast';
@@ -53,16 +54,16 @@ const ImageCard: React.FC<{
     onViewImage: (image: ImageObject) => void;
 }> = ({ image, isSelected, onToggleSelect, onViewImage }) => (
     <div
-        className={`relative group w-full h-full rounded-lg overflow-hidden border transition-all hover:scale-[1.02] cursor-pointer ${isSelected ? 'border-blue-500 ring-2 ring-blue-500/50' : 'border-white/5 bg-gray-900 shadow-md'}`}
+        className={`relative group w - full h - full rounded - lg overflow - hidden border transition - all hover: scale - [1.02] cursor - pointer ${isSelected ? 'border-blue-500 ring-2 ring-blue-500/50' : 'border-white/5 bg-gray-900 shadow-md'} `}
         onClick={() => onToggleSelect(image.id)}
     >
         <div className="absolute top-2 left-2 z-20" onClick={(e) => e.stopPropagation()}>
             <Checkbox
-                id={`img-select-${image.id}`}
+                id={`img - select - ${image.id} `}
                 checked={isSelected}
                 onChange={() => onToggleSelect(image.id)}
                 className="transform scale-110 shadow-lg"
-                aria-label={`Select image ${image.alt_description}`}
+                aria-label={`Select image ${image.alt_description} `}
             />
         </div>
         <div className="absolute top-2 right-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
@@ -76,7 +77,7 @@ const ImageCard: React.FC<{
         </div>
 
         <div className="w-full h-full">
-            <div className={`absolute inset-0 bg-blue-600/10 transition-opacity ${isSelected ? 'opacity-100' : 'opacity-0'}`}></div>
+            <div className={`absolute inset - 0 bg - blue - 600 / 10 transition - opacity ${isSelected ? 'opacity-100' : 'opacity-0'} `}></div>
 
             <img src={image.url_regular} alt={image.alt_description} className="w-full h-full object-cover" loading="lazy" />
 
@@ -266,7 +267,7 @@ const ImageControls: React.FC<{
                 )}
 
                 {/* Generic Model Handler for Replicate, Cloudflare, OpenRouter, HF, ModelScope */}
-                {[ImageSource.REPLICATE, ImageSource.HUGGINGFACE, ImageSource.CLOUDFLARE, ImageSource.OPENROUTER, ImageSource.MODELSCOPE].includes(source) && (
+                {[ImageSource.REPLICATE, ImageSource.HUGGINGFACE, ImageSource.OPENROUTER, ImageSource.MODELSCOPE].includes(source) && (
                     <div className="space-y-3">
                         {isFetchable && (
                             <div className="flex justify-end -mb-1">
@@ -362,9 +363,26 @@ const ImageControls: React.FC<{
                         )}
 
                         {source === ImageSource.CLOUDFLARE && (
-                            <div className="grid grid-cols-2 gap-2">
-                                <Input label="Steps (1-50)" type="number" min="1" max="50" value={params.num_steps} onChange={e => setParams({ ...params, num_steps: parseInt(e.target.value) })} />
-                                <Input label="Guidance" type="number" value={params.guidance} onChange={e => setParams({ ...params, guidance: parseFloat(e.target.value) })} />
+                            <div className="space-y-3">
+                                <Select
+                                    label="Model (Cloudflare Workers AI)"
+                                    value={params.model}
+                                    onChange={e => setParams({ ...params, model: e.target.value })}
+                                >
+                                    {CLOUDFLARE_MODELS.map(m => (
+                                        <option key={m.id} value={m.id}>{m.name}</option>
+                                    ))}
+                                </Select>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <Input label="Steps (1-50)" type="number" min="1" max="50" value={params.num_steps} onChange={e => setParams({ ...params, num_steps: parseInt(e.target.value) })} />
+                                    <Input label="Guidance" type="number" value={params.guidance} onChange={e => setParams({ ...params, guidance: parseFloat(e.target.value) })} />
+                                </div>
+                                {(params.model === '@cf/black-forest-labs/flux-1-schnell' || params.model === '@cf/black-forest-labs/flux-2-dev') && (
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <Input label="Width" type="number" min="256" max="2048" value={params.width || 1024} onChange={e => setParams({ ...params, width: parseInt(e.target.value) })} />
+                                        <Input label="Height" type="number" min="256" max="2048" value={params.height || 1024} onChange={e => setParams({ ...params, height: parseInt(e.target.value) })} />
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
@@ -528,11 +546,11 @@ const ImageTextProcessor: React.FC = () => {
                 // Helper to process a single image
                 const processImage = async (img: ImageObject): Promise<ImageObject> => {
                     try {
-                        console.log(`[Auto-Upload] Processing Image: ${img.id}, URL: ${img.url_regular}`);
+                        console.log(`[Auto - Upload] Processing Image: ${img.id}, URL: ${img.url_regular} `);
 
                         // Critical Validation: Reject relative URLs which break fetch/display
                         if (!img.url_regular || !img.url_regular.startsWith('http')) {
-                            console.error(`[Auto-Upload] Invalid URL (Relative or Empty): ${img.url_regular}`);
+                            console.error(`[Auto - Upload] Invalid URL(Relative or Empty): ${img.url_regular} `);
                             return img;
                         }
 
@@ -543,17 +561,17 @@ const ImageTextProcessor: React.FC = () => {
                             // Try direct fetch first
                             try {
                                 const response = await fetch(img.url_regular);
-                                if (!response.ok) throw new Error(`Direct fetch failed: ${response.statusText}`);
+                                if (!response.ok) throw new Error(`Direct fetch failed: ${response.statusText} `);
                                 blobToUpload = await response.blob();
                             } catch (directError) {
-                                console.warn(`[Auto-Upload] Direct fetch failed, trying proxy: ${directError}`);
+                                console.warn(`[Auto - Upload] Direct fetch failed, trying proxy: ${directError} `);
                                 // Fallback: Use Backend Proxy (Bypass GFW/CORS)
                                 // We use fetchProxy which wraps /api/proxy
                                 const proxyResponse = await fetchProxy({
                                     url: img.url_regular,
                                     method: 'GET'
                                 });
-                                if (!proxyResponse.ok) throw new Error(`Proxy fetch failed: ${proxyResponse.statusText}`);
+                                if (!proxyResponse.ok) throw new Error(`Proxy fetch failed: ${proxyResponse.statusText} `);
                                 blobToUpload = await proxyResponse.blob();
                             }
                         }
@@ -571,11 +589,11 @@ const ImageTextProcessor: React.FC = () => {
                         const ext = blobToUpload.type.split('/')[1] || 'png';
                         // Sanitize prompt for filename
                         const safeName = (img.alt_description || 'generated').replace(/[^a-z0-9]/gi, '_').substring(0, 50);
-                        const filename = `${safeName}.${ext}`;
+                        const filename = `${safeName}.${ext} `;
 
                         const r2Url = await uploadImageToBackend(blobToUpload, filename);
 
-                        console.log(`[Auto-Upload] Success: ${r2Url}`);
+                        console.log(`[Auto - Upload] Success: ${r2Url} `);
 
                         // Update Image Object
                         return {
@@ -741,7 +759,7 @@ const ImageTextProcessor: React.FC = () => {
     // --- Markdown & Preview Logic ---
     const generateMarkdownWithImages = useCallback(() => {
         const selected = images.filter(img => selectedImages[img.id]);
-        const imagePlaceholder = (index: number, img: ImageObject) => `\n\n<img src="${img.url_regular}" alt="${img.alt_description}" data-image-id="${img.id}" />\n*${img.alt_description}*\n\n`;
+        const imagePlaceholder = (index: number, img: ImageObject) => `\n\n < img src = "${img.url_regular}" alt = "${img.alt_description}" data - image - id="${img.id}" />\n * ${img.alt_description}*\n\n`;
 
         let tempContent = articleContent;
 
@@ -967,7 +985,7 @@ const ImageTextProcessor: React.FC = () => {
             const imagePlaceholder = (img: ImageObject) => {
                 const url = idToUrlMap.get(img.id) || img.url_regular;
                 // Use HTML format as requested for optimized storage tracking
-                return `\n\n<img src="${url}" alt="${img.alt_description}" data-image-id="${img.id}" />\n*${img.alt_description}*\n\n`;
+                return `\n\n < img src = "${url}" alt = "${img.alt_description}" data - image - id="${img.id}" />\n * ${img.alt_description}*\n\n`;
             };
 
             let finalContent = articleContent;
@@ -1142,7 +1160,7 @@ const ImageTextProcessor: React.FC = () => {
                                     onClick={handleUpdateArticle}
                                     isLoading={isSaving}
                                     disabled={numSelected === 0}
-                                    className={`text-white ${numSelected === 0 ? 'opacity-50 cursor-not-allowed' : 'bg-green-600 hover:bg-green-500'}`}
+                                    className={`text - white ${numSelected === 0 ? 'opacity-50 cursor-not-allowed' : 'bg-green-600 hover:bg-green-500'} `}
                                     title={numSelected === 0 ? "Select at least one image to update" : "Write images back to the article"}
                                 >
                                     <DocumentIcon className="w-4 h-4 mr-1" />

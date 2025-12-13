@@ -3,7 +3,7 @@ import React, { useState, useContext, useEffect, useCallback, useMemo } from 're
 import { AppContext } from '../context/AppContext';
 import { ImageSource, ImageApiKeys, ImageObject, Article, PixabayParams, UnsplashParams, KolarsParams, PollinationsParams, DalleParams, StabilityParams, SavedImageSet, PostToPublish, Project, KeywordSubProject, CloudflareParams, OpenRouterParams, NebiusParams, ZhipuImageParams } from '../types';
 import useLocalStorage from '../hooks/useLocalStorage';
-import { fetchPixabayImages, fetchUnsplashImages, fetchKolarsImages, fetchPollinationsImages, fetchReplicateImages, fetchHuggingFaceImages, fetchCloudflareImages, fetchOpenRouterImages, fetchNebiusImages, fetchZhipuImages, fetchModelScopeImages, fetchVolcEngineImages, fetchOpenAIImages, fetchStabilityImages, fetchAvailableImageModels, convertUrlToBase64, CLOUDFLARE_MODELS } from '../services/imageService';
+import { fetchPixabayImages, fetchUnsplashImages, fetchKolorsImages, fetchPollinationsImages, fetchReplicateImages, fetchHuggingFaceImages, fetchCloudflareImages, fetchOpenRouterImages, fetchNebiusImages, fetchZhipuImages, fetchModelScopeImages, fetchVolcEngineImages, fetchOpenAIImages, fetchStabilityImages, fetchAvailableImageModels, convertUrlToBase64, CLOUDFLARE_MODELS } from '../services/imageService';
 import { fetchProxy } from '../services/proxyService';
 import { uploadImageToBackend } from '../services/api';
 import { toast } from 'react-hot-toast';
@@ -267,7 +267,7 @@ const ImageControls: React.FC<{
                 )}
 
                 {/* Generic Model Handler for Replicate, Cloudflare, OpenRouter, HF, ModelScope */}
-                {[ImageSource.REPLICATE, ImageSource.HUGGINGFACE, ImageSource.OPENROUTER, ImageSource.MODELSCOPE].includes(source) && (
+                {[ImageSource.REPLICATE, ImageSource.HUGGINGFACE, ImageSource.OPENROUTER, ImageSource.MODELSCOPE, ImageSource.CLOUDFLARE].includes(source) && (
                     <div className="space-y-3">
                         {isFetchable && (
                             <div className="flex justify-end -mb-1">

@@ -138,26 +138,48 @@ const ContentProgressView: React.FC<ContentProgressViewProps> = ({ setPage, filt
         }
     };
 
-    const handleAddToQueue = () => {
+    const handleAddToQueue = async () => {
         const selectedIds = Array.from(selectedArticles);
         const articlesToAdd = articles.filter(a => selectedIds.includes(a.id));
 
-        const newQueueItems: PublishingItem[] = articlesToAdd.map(article => ({
+        if (!context?.supabase || !context.session) {
+            alert('错误：无法连接到数据库。');
+            return;
+        }
+
+        const newPosts: PostToPublish[] = articlesToAdd.map(article => ({
             id: crypto.randomUUID(),
-            source_id: article.id,
-            source_type: 'article',
-            name: article.title,
-            status: 'queued',
-            log: '等待发布',
+            user_id: context.session!.user.id,
+            title: article.title,
+            html_content: markdownToHtml(article.content),
+            markdown_content: article.content,
+            keyword_context: article.keyword_context,
+            used_images: [],
+            created_at: new Date().toISOString(),
+            parent_project_id: article.parent_project_id,
+            sub_project_id: article.sub_project_id,
+            published_destinations: [],
         }));
 
-        setPublishingQueue(prev => {
-            const existingIds = new Set(prev.map(p => p.source_id));
-            const uniqueNewItems = newQueueItems.filter(item => !existingIds.has(item.source_id));
-            return [...prev, ...uniqueNewItems];
-        });
-        setSelectedArticles(new Set());
-        alert(`${newQueueItems.length}篇文章已添加到发布队列。`);
+        try {
+            const { error } = await context.supabase
+                .from('posts_to_publish')
+                .insert(newPosts);
+
+            if (error) throw error;
+
+            // Update local state (postsToPublish) so it shows up in Tab 5 immediately
+            if (context.setPostsToPublish) {
+                context.setPostsToPublish(prev => [...prev, ...newPosts]);
+            }
+
+            setSelectedArticles(new Set());
+            alert(`${newPosts.length} 篇文章已添加到“待发布文章”队列。`);
+
+        } catch (err) {
+            console.error(err);
+            alert('添加失败，请重试。');
+        }
     };
 
     // --- Toolbar Logic ---
@@ -222,54 +244,54 @@ const ContentProgressView: React.FC<ContentProgressViewProps> = ({ setPage, filt
                         isIndeterminate={selectedArticles.size > 0 && selectedArticles.size < displayArticles.length}
                         onChange={handleSelectAll}
                     />
-                    <label htmlFor="select-all-articles" className="text-white font-medium">全选</label>
+                    <label htmlFor="select-all-articles" className="text-white font-medium text-sm">全选</label>
                 </div>
                 <div className="w-64">
                     <Input
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         placeholder="搜索文章标题..."
-                        className="py-1.5"
+                        className="py-1.5 text-sm"
                     />
                 </div>
             </div>
 
-            <div className="space-y-4 pb-20">
+            <div className="space-y-3 pb-20">
                 {displayArticles.length > 0 ? displayArticles.map(article => {
                     const parentProject = projects.find(p => p.id === article.parent_project_id);
                     const subProject = keywordLibrary.find(sp => sp.id === article.sub_project_id);
 
                     return (
-                        <Card key={article.id}>
-                            <div className="flex items-start gap-4">
+                        <Card key={article.id} noPadding className="p-4 hover:border-blue-500/50 transition-colors">
+                            <div className="flex items-start gap-3">
                                 <Checkbox
                                     id={`select-article-${article.id}`}
                                     checked={selectedArticles.has(article.id)}
                                     onChange={() => handleToggleSelection(article.id)}
-                                    className="mt-2"
+                                    className="mt-1"
                                     aria-label={`选择文章 ${article.title}`}
                                 />
                                 <div
                                     className="flex-1 cursor-pointer"
                                     onClick={() => handleCardClick(article)}
                                 >
-                                    <div className="flex justify-between items-start hover:bg-gray-700/20 p-1 rounded-md">
+                                    <div className="flex justify-between items-start">
                                         <div className="flex-1">
-                                            <h3 className="text-xl font-bold text-white">{article.title}</h3>
-                                            <p className="text-sm text-gray-400 mt-1">
-                                                项目: <span className="font-semibold text-gray-300">{parentProject?.name || 'N/A'} / {subProject?.name || 'N/A'}</span>
+                                            <h3 className="text-base font-bold text-white leading-tight mb-1">{article.title}</h3>
+                                            <p className="text-xs text-gray-400 flex items-center gap-2">
+                                                <span>项目: <span className="font-semibold text-gray-300">{parentProject?.name || 'N/A'} / {subProject?.name || 'N/A'}</span></span>
                                                 {article.language && (
-                                                    <span className="ml-2 px-2 py-0.5 rounded text-xs bg-blue-900/50 text-blue-400 border border-blue-800">
+                                                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-blue-900/50 text-blue-400 border border-blue-800">
                                                         {article.language}
                                                     </span>
                                                 )}
                                                 {article.source_article_id && (
-                                                    <span className="ml-2 text-xs text-gray-500 italic">
+                                                    <span className="text-[10px] text-gray-500 italic">
                                                         (Localized)
                                                     </span>
                                                 )}
                                             </p>
-                                            <div className="mt-2">
+                                            <div className="mt-1.5">
                                                 <StatusBadgeGrid destinations={article.publishedDestinations} />
                                             </div>
                                         </div>
@@ -294,7 +316,7 @@ const ContentProgressView: React.FC<ContentProgressViewProps> = ({ setPage, filt
                     <span className="text-white font-semibold">{selectedArticles.size} 已选择</span>
                     <Button variant="secondary" size="sm" onClick={() => setSelectedArticles(new Set())}>取消选择</Button>
                     <Button variant="primary" size="sm" onClick={handleAddToQueue}>
-                        <PublishIcon className="w-4 h-4 mr-1" /> 添加到发布队列
+                        <PublishIcon className="w-4 h-4 mr-1" /> 添加到“待发布文章”
                     </Button>
                     <Button variant="danger" size="sm" onClick={handleDeleteSelected}>
                         <TrashIcon className="w-4 h-4 mr-1" /> 删除

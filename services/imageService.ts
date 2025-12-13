@@ -664,7 +664,7 @@ export const fetchCloudflareImages = async (params: CloudflareParams, accountId:
 export const fetchOpenRouterImages = async (params: OpenRouterParams, apiKey: string): Promise<ImageObject[]> => {
     if (!apiKey) throw new Error("OpenRouter API Key is not provided.");
 
-    // OpenRouter uses OpenAI-compatible image generation endpoint
+    // OpenRouter uses OpenAI-compatible Chat Completions endpoint for Multi-Modal Image Generation
     const url = "https://openrouter.ai/api/v1/chat/completions";
 
     const body: any = {
@@ -675,8 +675,12 @@ export const fetchOpenRouterImages = async (params: OpenRouterParams, apiKey: st
                 content: params.prompt
             }
         ],
+        // CRITICAL: modalities must include "image" to trigger image generation
         modalities: ["image", "text"]
     };
+
+    // Optional params can go into image_config if supported, or top-level depending on model
+    // For now, we stick to the basic chat structure which is the standardized way.
 
     const response = await fetchProxy({
         url: url,
@@ -684,7 +688,7 @@ export const fetchOpenRouterImages = async (params: OpenRouterParams, apiKey: st
         headers: {
             "Authorization": `Bearer ${apiKey}`,
             "Content-Type": "application/json",
-            "HTTP-Referer": window.location.origin, // Required by OpenRouter
+            "HTTP-Referer": window.location.origin,
             "X-Title": "SEO Copilot",
         },
         body: body,
@@ -696,7 +700,66 @@ export const fetchOpenRouterImages = async (params: OpenRouterParams, apiKey: st
     }
 
     const data = await response.json();
-    return normalizeOpenRouterResponse(data, params);
+
+    // Custom Normalizer for OpenRouter Chat Response
+    // OpenRouter returns images in: choices[0].message.images[{ type: 'image_url', image_url: { url: '...' } }]
+    // OR depending on model sometimes markdown. 
+    // Document says: choices[].message.images[]
+
+    const images: ImageObject[] = [];
+
+    if (data.choices && data.choices.length > 0) {
+        data.choices.forEach((choice: any) => {
+            if (choice.message && choice.message.images && Array.isArray(choice.message.images)) {
+                choice.message.images.forEach((img: any) => {
+                    // Check for data:image/png;base64 or http url
+                    const url = img.image_url?.url || img.url;
+                    if (url) {
+                        images.push({
+                            id: `or-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+                            url_regular: url,
+                            url_full: url,
+                            alt_description: params.prompt,
+                            author_name: params.model,
+                            source_platform: ImageSource.OPENROUTER,
+                            width: params.width || 1024,
+                            height: params.height || 1024,
+                            author_url: "https://openrouter.ai",
+                            source_url: "https://openrouter.ai"
+                        });
+                    }
+                });
+            }
+        });
+    }
+
+    if (images.length === 0) {
+        // Fallback: Check if the content contains a markdown image or URL as some models might just return text
+        const content = data.choices?.[0]?.message?.content;
+        if (content) {
+            // Very basic extraction if models return markdown URL
+            const urlMatch = content.match(/\((https?:\/\/[^\)]+)\)/);
+            if (urlMatch) {
+                images.push({
+                    id: `or-fallback-${Date.now()}`,
+                    url_regular: urlMatch[1],
+                    url_full: urlMatch[1],
+                    alt_description: params.prompt,
+                    author_name: params.model,
+                    source_platform: ImageSource.OPENROUTER,
+                    width: 1024,
+                    height: 1024,
+                    author_url: "https://openrouter.ai",
+                    source_url: "https://openrouter.ai"
+                });
+            } else {
+                console.warn("OpenRouter response did not contain structured images:", data);
+                // Don't throw if we got a valid response but no image, just return empty so user knows
+            }
+        }
+    }
+
+    return images;
 };
 
 export const fetchNebiusImages = async (params: NebiusParams, apiKey: string): Promise<ImageObject[]> => {

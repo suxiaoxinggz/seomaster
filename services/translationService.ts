@@ -1,4 +1,5 @@
 import { TranslationProvider, TranslationApiKeys } from '../types';
+import { fetchProxy } from './proxyService';
 
 /**
  * Maps readable language names to specific ISO codes required by each provider.
@@ -59,7 +60,7 @@ const getLanguageCode = (languageName: string, provider: TranslationProvider): s
 };
 
 /**
- * Executes a translation using DeepL API V2.
+ * Executes a translation using DeepL API V2 via Backend Proxy.
  * Automatically switches between Free and Pro endpoints based on key suffix (:fx).
  */
 const translateDeepL = async (text: string, targetLang: string, key: string): Promise<string> => {
@@ -69,17 +70,19 @@ const translateDeepL = async (text: string, targetLang: string, key: string): Pr
         ? 'https://api-free.deepl.com/v2/translate'
         : 'https://api.deepl.com/v2/translate';
 
-    const params = new URLSearchParams();
-    params.append('text', text);
-    params.append('target_lang', getLanguageCode(targetLang, TranslationProvider.DEEPL));
-
-    const response = await fetch(endpoint, {
+    // Use JSON-based API (supported by DeepL) for easier proxying
+    // Content-Type: application/json for DeepL expects { text: ["..."], target_lang: "..." }
+    const response = await fetchProxy({
+        url: endpoint,
         method: 'POST',
         headers: {
             'Authorization': `DeepL-Auth-Key ${key}`,
-            'Content-Type': 'application/x-www-form-urlencoded'
+            'Content-Type': 'application/json'
         },
-        body: params
+        body: {
+            text: [text],
+            target_lang: getLanguageCode(targetLang, TranslationProvider.DEEPL)
+        }
     });
 
     if (!response.ok) {
@@ -92,20 +95,21 @@ const translateDeepL = async (text: string, targetLang: string, key: string): Pr
 };
 
 /**
- * Executes a translation using Google Cloud Translation API (Basic / v2).
+ * Executes a translation using Google Cloud Translation API (Basic / v2) via Backend Proxy.
  * Note: Requires an API Key restricted to "Cloud Translation API".
  */
 const translateGoogle = async (text: string, targetLang: string, key: string): Promise<string> => {
     const url = `https://translation.googleapis.com/language/translate/v2?key=${key}`;
 
-    const response = await fetch(url, {
+    const response = await fetchProxy({
+        url: url,
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: {
             q: text,
             target: getLanguageCode(targetLang, TranslationProvider.GOOGLE),
             format: 'text' // Use 'text' to prevent Google from escaping HTML entities double time if input is markdown
-        })
+        }
     });
 
     if (!response.ok) {
@@ -118,7 +122,7 @@ const translateGoogle = async (text: string, targetLang: string, key: string): P
 };
 
 /**
- * Executes a translation using Microsoft Azure Translator Text API V3.0.
+ * Executes a translation using Microsoft Azure Translator Text API V3.0 via Backend Proxy.
  * Requires "Ocp-Apim-Subscription-Region" if the resource is not global.
  */
 const translateMicrosoft = async (text: string, targetLang: string, key: string, region: string): Promise<string> => {
@@ -135,10 +139,11 @@ const translateMicrosoft = async (text: string, targetLang: string, key: string,
         headers['Ocp-Apim-Subscription-Region'] = region;
     }
 
-    const response = await fetch(url, {
+    const response = await fetchProxy({
+        url: url,
         method: 'POST',
         headers: headers,
-        body: JSON.stringify([{ 'Text': text }])
+        body: [{ 'Text': text }]
     });
 
     if (!response.ok) {

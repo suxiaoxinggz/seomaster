@@ -70,6 +70,9 @@ const translateDeepL = async (text: string, targetLang: string, key: string): Pr
         ? 'https://api-free.deepl.com/v2/translate'
         : 'https://api.deepl.com/v2/translate';
 
+    // Official Docs: https://developers.deepl.com/docs/api-access
+    console.log(`[DeepL] Using ${isFree ? 'FREE' : 'PRO'} API Endpoint: ${endpoint}`);
+
     // Use JSON-based API (supported by DeepL) for easier proxying
     // Content-Type: application/json for DeepL expects { text: ["..."], target_lang: "..." }
     const response = await fetchProxy({

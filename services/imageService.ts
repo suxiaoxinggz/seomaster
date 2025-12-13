@@ -534,52 +534,148 @@ export const fetchReplicateImages = async (params: ReplicateParams, apiKey: stri
     throw new Error(`Replicate prediction failed with status: ${status}`);
 };
 
+// --- CLOUDFLARE WORKERS AI PRESETS ---
+const CLOUDFLARE_MODELS = [
+    { id: '@cf/black-forest-labs/flux-2-dev', name: 'FLUX 2 Dev', mode: 'multipart-base64' },
+    { id: '@cf/black-forest-labs/flux-1-schnell', name: 'FLUX 1 Schnell', mode: 'json-base64' },
+    { id: '@cf/runwayml/stable-diffusion-v1-5-img2img', name: 'Stable Diffusion v1.5 Img2Img', mode: 'json-binary' },
+    { id: '@cf/runwayml/stable-diffusion-v1-5-inpainting', name: 'Stable Diffusion v1.5 Inpainting', mode: 'json-binary' },
+    { id: '@cf/bytedance/stable-diffusion-xl-lightning', name: 'Stable Diffusion XL Lightning', mode: 'json-binary' }
+];
+
 export const fetchCloudflareImages = async (params: CloudflareParams, accountId: string, token: string): Promise<ImageObject[]> => {
-    if (!accountId || !token) throw new Error("Cloudflare Account ID and API Token are required.");
-    if (!params.model) throw new Error("Cloudflare model ID is required.");
+    // Note: The params interface here might be 'CloudflareParams', but we treat it as generic enough or cast it.
+    // In original code it was 'CloudflareParams', which extends ImageGenerationParams.
 
-    const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${params.model}`;
+    // We prioritize the preset configuration over raw params if possible
+    const modelId = params.model || '@cf/black-forest-labs/flux-1-schnell';
+    const modelConfig = CLOUDFLARE_MODELS.find(m => m.id === modelId) || CLOUDFLARE_MODELS[1]; // Default to Schnell if mismatch
 
-    const body: any = {
-        prompt: params.prompt,
-        num_steps: params.num_steps,
-        guidance: params.guidance,
+    // Use Account ID from params/keys if passed, or fallback to environment variable concept
+    // The signature assumes accountId is passed from the caller (which gets it from keys)
+    if (!accountId || !token) throw new Error("Cloudflare Account ID and Token are required.");
+
+    const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${modelId}`;
+
+    let proxyBody: any;
+    let proxyHeaders: Record<string, string> = {
+        'Authorization': `Bearer ${token}`
     };
-    if (params.negative_prompt) body.negative_prompt = params.negative_prompt;
+
+    // 1. Construct Request Body based on Model Type
+    if (modelConfig.mode === 'multipart-base64') {
+        // FLUX 2 Dev: Multipart/Form-Data
+        // We handle this by constructing the multipart string manually because proxy expects body string/json
+        const boundary = '----CloudflareBoundary' + Math.random().toString(36).substring(2);
+        proxyHeaders['Content-Type'] = `multipart/form-data; boundary=${boundary}`;
+
+        let bodyParts = [
+            `--${boundary}`,
+            `Content-Disposition: form-data; name="prompt"`,
+            ``,
+            params.prompt,
+            `--${boundary}`,
+            `Content-Disposition: form-data; name="steps"`,
+            ``,
+            `${params.num_steps || 20}`, // Flux 2 usually 20-50
+            `--${boundary}`,
+            `Content-Disposition: form-data; name="width"`,
+            ``,
+            `${params.width || 1024}`,
+            `--${boundary}`,
+            `Content-Disposition: form-data; name="height"`,
+            ``,
+            `${params.height || 1024}`,
+            `--${boundary}--`
+        ];
+
+        proxyBody = bodyParts.join('\r\n');
+
+    } else {
+        // JSON Models
+        proxyHeaders['Content-Type'] = 'application/json';
+
+        const jsonPayload: any = {
+            prompt: params.prompt,
+        };
+
+        if (modelConfig.id === '@cf/black-forest-labs/flux-1-schnell') {
+            // Schnell: prompt (only required), steps (optional, max 8)
+            if (params.num_steps) jsonPayload.steps = Math.min(params.num_steps, 8);
+        } else {
+            // SD / SDXL
+            jsonPayload.width = params.width || 1024;
+            jsonPayload.height = params.height || 1024;
+            if (params.negative_prompt) jsonPayload.negative_prompt = params.negative_prompt;
+            if (params.num_steps) jsonPayload.num_steps = params.num_steps;
+            if (params.guidance) jsonPayload.guidance = params.guidance;
+        }
+
+        proxyBody = jsonPayload;
+    }
 
     const response = await fetchProxy({
         url: url,
         method: "POST",
-        headers: {
-            "Authorization": `Bearer ${token}`,
-            "Content-Type": "application/json",
-        },
-        body: body,
+        headers: proxyHeaders,
+        body: proxyBody,
     });
 
     if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Cloudflare Workers AI Error: ${response.status} - ${errorText}`);
+        throw new Error(`Cloudflare AI Error: ${response.status} - ${errorText}`);
     }
 
-    // Cloudflare returns binary blob for images
-    const blob = await response.blob();
-    return normalizeCloudflareResponse(blob, params);
+    // 2. Process Response based on Model Type
+    let imageUrl: string;
+
+    if (modelConfig.mode === 'json-binary') {
+        // Binary PNG (Standard SD)
+        const blob = await response.blob();
+        // Since we need to normalize it, we pass it to normalizer OR construct here
+        // The existing normalizeCloudflareResponse expects a Blob.
+        return normalizeCloudflareResponse(blob, params);
+    } else {
+        // JSON Base64 (Flux)
+        const data = await response.json();
+        const base64Str = data.result?.image || data.image; // Check both potential locations
+
+        if (!base64Str) throw new Error("Cloudflare response missing 'image' field.");
+
+        // Convert Base64 to Blob to reuse normalizer or construct URL directly
+        // Better to construct data URL directly for consistency
+        imageUrl = `data:image/png;base64,${base64Str}`;
+
+        return [{
+            id: `cf-${Date.now()}`,
+            url_regular: imageUrl,
+            url_full: imageUrl,
+            alt_description: params.prompt,
+            author_name: modelConfig.name,
+            author_url: 'https://developers.cloudflare.com/workers-ai/',
+            source_platform: ImageSource.CLOUDFLARE,
+            source_url: 'https://developers.cloudflare.com/workers-ai/',
+            width: params.width || 1024,
+            height: params.height || 1024,
+        }];
+    }
 };
 
 export const fetchOpenRouterImages = async (params: OpenRouterParams, apiKey: string): Promise<ImageObject[]> => {
     if (!apiKey) throw new Error("OpenRouter API Key is not provided.");
 
     // OpenRouter uses OpenAI-compatible image generation endpoint
-    const url = "https://openrouter.ai/api/v1/images/generations";
+    const url = "https://openrouter.ai/api/v1/chat/completions";
 
     const body: any = {
         model: params.model,
-        prompt: params.prompt,
-        n: params.per_page,
-        size: params.width && params.height ? `${params.width}x${params.height}` : undefined,
-        // Smart optimization: Request Base64 JSON if supported to avoid ephemeral URLs
-        response_format: "b64_json"
+        messages: [
+            {
+                role: "user",
+                content: params.prompt
+            }
+        ],
+        modalities: ["image", "text"]
     };
 
     const response = await fetchProxy({
@@ -677,16 +773,8 @@ export const fetchZhipuImages = async (params: ZhipuImageParams, apiKey: string)
 export const fetchAvailableImageModels = async (source: ImageSource, keys: ImageApiKeys): Promise<{ id: string, name?: string }[]> => {
     switch (source) {
         case ImageSource.CLOUDFLARE:
-            if (!keys.cloudflare_account_id || !keys.cloudflare_token) throw new Error("Missing Cloudflare Credentials");
-            // Remove search filter to get full list
-            const cfUrl = `https://api.cloudflare.com/client/v4/accounts/${keys.cloudflare_account_id}/ai/models`;
-            const cfRes = await fetchProxy({
-                url: cfUrl,
-                headers: { "Authorization": `Bearer ${keys.cloudflare_token}` }
-            });
-            if (!cfRes.ok) throw new Error("Failed to fetch Cloudflare models");
-            const cfData = await cfRes.json();
-            return cfData.result.map((m: any) => ({ id: m.name, name: m.name }));
+            // Return RESTRICTED PRESET LIST for Cloudflare to ensure compatibility
+            return CLOUDFLARE_MODELS.map(m => ({ id: m.id, name: m.name }));
 
         case ImageSource.OPENROUTER:
             if (!keys[ImageSource.OPENROUTER]) throw new Error("Missing OpenRouter API Key");

@@ -578,6 +578,8 @@ export interface CloudflareParams extends BaseImageParams {
   model: string;
   num_steps?: number;
   guidance?: number;
+  width?: number;
+  height?: number;
 }
 
 export interface OpenRouterParams extends BaseImageParams {

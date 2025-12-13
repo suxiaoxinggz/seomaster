@@ -393,7 +393,13 @@ export const fetchPollinationsImages = async (params: PollinationsParams): Promi
         : params.prompt;
 
     for (let i = 0; i < params.per_page; i++) {
-        const url = new URL(`https://image.pollinations.ai/prompt/${encodeURIComponent(fullPrompt)}`);
+        // Explicitly construct absolute URL to avoid any browser relative path issues
+        const baseUrl = 'https://image.pollinations.ai/prompt/';
+        const encodedPrompt = encodeURIComponent(fullPrompt);
+
+        // Use String Concatenation for Base to ensure Protocol is never lost
+        const urlString = `${baseUrl}${encodedPrompt}`;
+        const url = new URL(urlString);
 
         if (params.model) url.searchParams.append('model', params.model);
         if (params.width) url.searchParams.append('width', String(params.width));
@@ -409,7 +415,9 @@ export const fetchPollinationsImages = async (params: PollinationsParams): Promi
             url.searchParams.append('r', String(Math.random()));
         }
 
-        urls.push(url.toString());
+        const finalUrl = url.toString();
+        console.log(`[Pollinations] Generated URL: ${finalUrl}`); // Debug Log
+        urls.push(finalUrl);
     }
     return normalizePollinationsResponse(urls, params);
 };

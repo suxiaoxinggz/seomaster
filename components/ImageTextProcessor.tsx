@@ -528,11 +528,20 @@ const ImageTextProcessor: React.FC = () => {
                 // Helper to process a single image
                 const processImage = async (img: ImageObject): Promise<ImageObject> => {
                     try {
+                        console.log(`[Auto-Upload] Processing Image: ${img.id}, URL: ${img.url_regular}`);
+
+                        // Critical Validation: Reject relative URLs which break fetch/display
+                        if (!img.url_regular || !img.url_regular.startsWith('http')) {
+                            console.error(`[Auto-Upload] Invalid URL (Relative or Empty): ${img.url_regular}`);
+                            return img;
+                        }
+
                         let blobToUpload: Blob;
 
                         // Case A: URL (External or Blob URL)
                         if (img.url_regular.startsWith('http') || img.url_regular.startsWith('blob:')) {
                             const response = await fetch(img.url_regular);
+                            if (!response.ok) throw new Error(`Failed to fetch source image: ${response.statusText}`);
                             blobToUpload = await response.blob();
                         }
                         // Case B: Base64

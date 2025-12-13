@@ -678,7 +678,8 @@ export const fetchAvailableImageModels = async (source: ImageSource, keys: Image
     switch (source) {
         case ImageSource.CLOUDFLARE:
             if (!keys.cloudflare_account_id || !keys.cloudflare_token) throw new Error("Missing Cloudflare Credentials");
-            const cfUrl = `https://api.cloudflare.com/client/v4/accounts/${keys.cloudflare_account_id}/ai/models?search=text-to-image`;
+            // Remove search filter to get full list
+            const cfUrl = `https://api.cloudflare.com/client/v4/accounts/${keys.cloudflare_account_id}/ai/models`;
             const cfRes = await fetchProxy({
                 url: cfUrl,
                 headers: { "Authorization": `Bearer ${keys.cloudflare_token}` }
@@ -695,11 +696,13 @@ export const fetchAvailableImageModels = async (source: ImageSource, keys: Image
             });
             if (!orRes.ok) throw new Error("Failed to fetch OpenRouter models");
             const orData = await orRes.json();
-            // Filter heuristically for image models if possible, or just return all
-            // OpenRouter data includes 'architecture'. We can check for 'diffusion' or similar.
-            return orData.data
-                .filter((m: any) => m.architecture?.model_type === 'text-to-image' || m.id.includes('diffusion') || m.id.includes('flux') || m.id.includes('image'))
-                .map((m: any) => ({ id: m.id, name: m.name }));
+
+            // Return FULL list without filtering, as requested
+            // Users can search/select from the dropdown
+            return orData.data.map((m: any) => ({
+                id: m.id,
+                name: m.name || m.id
+            }));
 
         case ImageSource.REPLICATE:
             // Replicate listing is complex (paged), we'll return a static popular list for now + fetch if user provides owner/name

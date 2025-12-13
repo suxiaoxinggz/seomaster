@@ -1,9 +1,9 @@
-
 import React, { useState, useContext, useEffect, useCallback, useMemo } from 'react';
 import { AppContext } from '../context/AppContext';
 import { ImageSource, ImageApiKeys, ImageObject, Article, PixabayParams, UnsplashParams, KolarsParams, PollinationsParams, DalleParams, StabilityParams, SavedImageSet, PostToPublish, Project, KeywordSubProject, CloudflareParams, OpenRouterParams, NebiusParams, ZhipuImageParams } from '../types';
 import useLocalStorage from '../hooks/useLocalStorage';
 import { fetchPixabayImages, fetchUnsplashImages, fetchKolorsImages, fetchPollinationsImages, fetchReplicateImages, fetchHuggingFaceImages, fetchCloudflareImages, fetchOpenRouterImages, fetchNebiusImages, fetchZhipuImages, fetchModelScopeImages, fetchVolcEngineImages, fetchOpenAIImages, fetchStabilityImages, fetchAvailableImageModels, convertUrlToBase64 } from '../services/imageService';
+import { fetchProxy } from '../services/proxyService';
 import { uploadImageToBackend } from '../services/api';
 import { toast } from 'react-hot-toast';
 import Button from './ui/Button';
@@ -540,9 +540,22 @@ const ImageTextProcessor: React.FC = () => {
 
                         // Case A: URL (External or Blob URL)
                         if (img.url_regular.startsWith('http') || img.url_regular.startsWith('blob:')) {
-                            const response = await fetch(img.url_regular);
-                            if (!response.ok) throw new Error(`Failed to fetch source image: ${response.statusText}`);
-                            blobToUpload = await response.blob();
+                            // Try direct fetch first
+                            try {
+                                const response = await fetch(img.url_regular);
+                                if (!response.ok) throw new Error(`Direct fetch failed: ${response.statusText}`);
+                                blobToUpload = await response.blob();
+                            } catch (directError) {
+                                console.warn(`[Auto-Upload] Direct fetch failed, trying proxy: ${directError}`);
+                                // Fallback: Use Backend Proxy (Bypass GFW/CORS)
+                                // We use fetchProxy which wraps /api/proxy
+                                const proxyResponse = await fetchProxy({
+                                    url: img.url_regular,
+                                    method: 'GET'
+                                });
+                                if (!proxyResponse.ok) throw new Error(`Proxy fetch failed: ${proxyResponse.statusText}`);
+                                blobToUpload = await proxyResponse.blob();
+                            }
                         }
                         // Case B: Base64
                         else if (img.url_regular.startsWith('data:')) {
@@ -561,6 +574,8 @@ const ImageTextProcessor: React.FC = () => {
                         const filename = `${safeName}.${ext}`;
 
                         const r2Url = await uploadImageToBackend(blobToUpload, filename);
+
+                        console.log(`[Auto-Upload] Success: ${r2Url}`);
 
                         // Update Image Object
                         return {
